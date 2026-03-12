@@ -1,0 +1,9 @@
+streamlit
+pandas
+requests
+plotly
+matplotlib
+seaborn
+numpy
+Pillow
+streamlit-aggrid

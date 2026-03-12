@@ -1,0 +1,18 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pandas = "*"
+requests = "*"
+streamlit = "*"
+matplotlib = "*"
+seaborn = "*"
+streamlit-aggrid = "*"
+plotly = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3"
