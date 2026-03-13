@@ -1,9 +1,6 @@
-streamlit
+flask
+gunicorn
 pandas
 requests
-plotly
-matplotlib
-seaborn
-numpy
+python-dotenv
 Pillow
-streamlit-aggrid

@@ -11,6 +11,10 @@ matplotlib = "*"
 seaborn = "*"
 streamlit-aggrid = "*"
 plotly = "*"
+flask = "*"
+gunicorn = "*"
+python-dotenv = "*"
+pillow = "*"
 
 [dev-packages]
 
