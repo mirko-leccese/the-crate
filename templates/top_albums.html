@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Top Album — The Crate{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Top Album</h1>
+  <p class="page-subtitle">La classifica completa degli album recensiti, ordinata per punteggio.</p>
+</div>
+
+{% if error %}
+<div class="error-banner">{{ error }}</div>
+{% else %}
+
+<!-- Filter panel -->
+<div class="filter-panel" id="filterPanel">
+  <button class="filter-toggle" id="filterToggle" type="button">
+    <svg class="filter-toggle__icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span id="filterToggleLabel">Filtri</span>
+  </button>
+
+  <form id="filterForm" class="filter-form filter-form--hidden" method="get" action="{{ url_for('top_albums') }}">
+    <!-- Genere: unique_genre pills -->
+    <div class="filter-section">
+      <span class="filter-label">Genere</span>
+      <div class="genre-pills">
+        {% for g in all_unique_genres %}
+        <label class="genre-pill">
+          <input type="checkbox" name="unique_genre" value="{{ g }}"
+            {% if g in selected_unique_genres %}checked{% endif %}>
+          {{ g }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Sottogenere: raw tag multi-select -->
+    <div class="filter-section">
+      <label class="filter-label" for="subgenreSelect">Sottogenere</label>
+      <select name="subgenre" id="subgenreSelect" class="filter-select filter-select--multi" multiple>
+        {% for sg in all_subgenres %}
+        <option value="{{ sg }}" {% if sg in selected_subgenres %}selected{% endif %}>{{ sg }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Year + score -->
+    <div class="filter-year-score">
+      <fieldset class="filter-group">
+        <legend class="filter-label">Anno</legend>
+        <div class="filter-row">
+          <div class="filter-select-wrap">
+            <label class="filter-sublabel" for="year_min">Dal</label>
+            <select name="year_min" id="year_min" class="filter-select">
+              <option value="">—</option>
+              {% for y in all_years %}
+              <option value="{{ y }}" {% if year_min == y %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="filter-select-wrap">
+            <label class="filter-sublabel" for="year_max">Al</label>
+            <select name="year_max" id="year_max" class="filter-select">
+              <option value="">—</option>
+              {% for y in all_years %}
+              <option value="{{ y }}" {% if year_max == y %}selected{% endif %}>{{ y }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="filter-group filter-score-group">
+        <legend class="filter-label">Punteggio minimo: <span id="scoreMinDisplay">{{ score_min }}</span></legend>
+        <input type="range" name="score_min" id="scoreMin"
+               min="{{ global_score_min }}" max="{{ global_score_max }}"
+               value="{{ score_min }}" class="filter-range"
+               oninput="document.getElementById('scoreMinDisplay').textContent=this.value">
+        <div class="filter-range-labels">
+          <span>{{ global_score_min }}</span><span>{{ global_score_max }}</span>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn--primary">Applica filtri</button>
+      <a href="{{ url_for('top_albums') }}" class="btn btn--ghost">Azzera</a>
+    </div>
+  </form>
+</div>
+
+<!-- Result count -->
+<p class="result-count">{{ albums | length }} album trovati</p>
+
+<!-- Album list -->
+<div class="album-list">
+  {% for album in albums %}
+  {% set pos = loop.index %}
+  <article class="album-card">
+    <div class="album-card__inner">
+      <div class="album-card__cover">
+        {% if album.cover_url %}
+        <img src="{{ album.cover_url }}" alt="Cover di {{ album.name }}" loading="lazy">
+        {% else %}
+        <div class="album-card__cover-placeholder">—</div>
+        {% endif %}
+      </div>
+
+      <div class="album-card__info">
+        <div class="album-card__heading">
+          <span class="album-card__position">
+            {% if pos == 1 %}🥇{% elif pos == 2 %}🥈{% elif pos == 3 %}🥉{% else %}{{ pos }}°{% endif %}
+          </span>
+          <h3 class="album-card__title">
+            {{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}{% if album.special %} ✰{% endif %}
+          </h3>
+        </div>
+
+        <p class="album-card__artist">{{ album.artist }}</p>
+
+        {% if album.genres %}
+        <div class="album-card__tags">
+          {% for g in album.genres %}
+          <span class="genre-tag">{{ g }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if album.notes %}
+        <div class="album-notes">
+          <p class="album-notes__text album-notes__text--clamped">{{ album.notes }}</p>
+          <button class="album-notes__toggle" type="button">Leggi di più</button>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="album-card__score-block">
+        <div class="album-card__score-numeral">{% if album.score %}{{ album.score | int }}{% endif %}</div>
+        {% if album.tier or album.rank %}
+        <div class="album-card__score-meta">
+          {% if album.tier %}Tier {{ album.tier }}°{% endif %}{% if album.tier and album.rank %} · {% endif %}{% if album.rank %}Rank {{ album.rank }}°{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Score details (expandable) -->
+    <details class="score-details">
+      <summary class="score-details__summary">Dettaglio punteggi</summary>
+      <div class="score-details__body">
+        <div class="score-metric">
+          <span class="score-metric__label">Impressione generale</span>
+          <span class="score-metric__value">{{ album.overall }}/10</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric__label">Produzione</span>
+          <span class="score-metric__value">{{ album.production }}/3.0</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric__label">Voce / Testi</span>
+          <span class="score-metric__value">{{ album.lyrics_novelty }}/3.0</span>
+        </div>
+        {% if album.masterpiece_track_titles %}
+        <p class="score-details__tracks">Tracce top: {{ album.masterpiece_track_titles }}</p>
+        {% endif %}
+      </div>
+    </details>
+  </article>
+  {% else %}
+  <p class="empty-state">Nessun album corrisponde ai filtri selezionati.</p>
+  {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const filterToggle = document.getElementById('filterToggle');
+  const filterForm = document.getElementById('filterForm');
+  const filterToggleLabel = document.getElementById('filterToggleLabel');
+
+  filterToggle.addEventListener('click', () => {
+    const hidden = filterForm.classList.toggle('filter-form--hidden');
+    filterToggleLabel.textContent = hidden ? 'Filtri' : 'Nascondi filtri';
+  });
+
+  // Expand/collapse album notes inline
+  document.querySelectorAll('.album-notes__toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const textEl = btn.previousElementSibling;
+      const clamped = textEl.classList.toggle('album-notes__text--clamped');
+      btn.textContent = clamped ? 'Leggi di più' : 'Mostra meno';
+    });
+  });
+</script>
+{% endblock %}

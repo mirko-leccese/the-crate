@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}The Crate{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <!-- Hamburger toggle (mobile only) -->
+  <button class="nav-toggle" id="navToggle" aria-label="Apri menu">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar__logo">
+      <a href="{{ url_for('index') }}" class="sidebar__brand">The Crate</a>
+    </div>
+    <ul class="sidebar__nav">
+      <li>
+        <a href="{{ url_for('index') }}"
+           class="sidebar__link {% if request.endpoint == 'index' %}sidebar__link--active{% endif %}">
+          Home
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('top_albums') }}"
+           class="sidebar__link {% if request.endpoint == 'top_albums' %}sidebar__link--active{% endif %}">
+          Top Album
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('search') }}"
+           class="sidebar__link {% if request.endpoint == 'search' %}sidebar__link--active{% endif %}">
+          Cerca
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('random_albums') }}"
+           class="sidebar__link {% if request.endpoint == 'random_albums' %}sidebar__link--active{% endif %}">
+          Casuale
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('perche') }}"
+           class="sidebar__link {% if request.endpoint == 'perche' %}sidebar__link--active{% endif %}">
+          Perché?
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- Overlay for mobile sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Main content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    const toggle = document.getElementById('navToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+
+    function closeSidebar() {
+      sidebar.classList.remove('sidebar--open');
+      overlay.classList.remove('sidebar-overlay--visible');
+    }
+
+    toggle.addEventListener('click', () => {
+      sidebar.classList.toggle('sidebar--open');
+      overlay.classList.toggle('sidebar-overlay--visible');
+    });
+    overlay.addEventListener('click', closeSidebar);
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

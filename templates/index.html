@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}The Crate — Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">The Crate</h1>
+  <p class="page-subtitle">La mia collezione di album recensiti</p>
+</div>
+
+{% if error %}
+<div class="error-banner">{{ error }}</div>
+{% else %}
+
+<!-- Stat cards -->
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-card__value">{{ n_albums }}</div>
+    <div class="stat-card__label">Album recensiti</div>
+    {% if delta_albums_added is not none %}
+    <div class="stat-card__delta {% if delta_albums_added > 0 %}delta--positive{% elif delta_albums_added < 0 %}delta--negative{% else %}delta--neutral{% endif %}">
+      {% if delta_albums_added > 0 %}+{% endif %}{{ delta_albums_added }} vs anno scorso
+    </div>
+    {% endif %}
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ n_artists }}</div>
+    <div class="stat-card__label">Artisti unici</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ n_this_year }}</div>
+    <div class="stat-card__label">Album del {{ current_year }}</div>
+    {% if delta_this_year is not none %}
+    <div class="stat-card__delta {% if delta_this_year > 0 %}delta--positive{% elif delta_this_year < 0 %}delta--negative{% else %}delta--neutral{% endif %}">
+      {% if delta_this_year > 0 %}+{% endif %}{{ delta_this_year }} vs {{ prev_year }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Carousel: questo anno -->
+{% if albums_this_year %}
+<section class="shelf">
+  <div class="shelf__header">
+    <h2 class="shelf__title">Quest'anno</h2>
+    <p class="shelf__subtitle">Le ultime uscite del {{ current_year }}</p>
+  </div>
+  <div class="shelf__track">
+    {% for album in albums_this_year %}
+    <div class="shelf-card">
+      <div class="shelf-card__poster">
+        {% if album.cover_url %}
+        <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
+        {% else %}
+        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
+        {% endif %}
+        <div class="shelf-card__overlay">
+          <div class="shelf-card__artist">{{ album.artist }}</div>
+          <div class="shelf-card__name">{{ album.name }}</div>
+          {% if album.score %}
+          <div class="shelf-card__score">{{ album.score | int }}/100</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Carousel: archivio -->
+{% if albums_archive %}
+<section class="shelf">
+  <div class="shelf__header">
+    <h2 class="shelf__title">Dal passato</h2>
+    <p class="shelf__subtitle">Riscoperte dal catalogo storico</p>
+  </div>
+  <div class="shelf__track">
+    {% for album in albums_archive %}
+    <div class="shelf-card">
+      <div class="shelf-card__poster">
+        {% if album.cover_url %}
+        <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
+        {% else %}
+        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
+        {% endif %}
+        <div class="shelf-card__overlay">
+          <div class="shelf-card__artist">{{ album.artist }}</div>
+          <div class="shelf-card__name">{{ album.name }}</div>
+          {% if album.score %}
+          <div class="shelf-card__score">{{ album.score | int }}/100</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% endif %}
+{% endblock %}

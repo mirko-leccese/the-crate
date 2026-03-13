@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Casuale — The Crate{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Generatore Casuale</h1>
+  <p class="page-subtitle">Filtra, premi Genera e lasciati sorprendere.</p>
+</div>
+
+{% if error %}
+<div class="error-banner">{{ error }}</div>
+{% else %}
+
+<form class="random-form" method="get" action="{{ url_for('random_albums') }}">
+  <input type="hidden" name="_t" id="randomTimestamp">
+
+  <!-- Genre pills -->
+  <div class="filter-section">
+    <span class="filter-label">Genere</span>
+    <div class="genre-pills">
+      {% for genre in all_genres %}
+      <label class="genre-pill">
+        <input type="checkbox" name="genre" value="{{ genre }}"
+          {% if genre in selected_genres %}checked{% endif %}>
+        {{ genre }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Year + score -->
+  <div class="filter-year-score">
+    <fieldset class="filter-group">
+      <legend class="filter-label">Anno</legend>
+      <div class="filter-row">
+        <div class="filter-select-wrap">
+          <label class="filter-sublabel" for="r_year_min">Dal</label>
+          <select name="year_min" id="r_year_min" class="filter-select">
+            <option value="">—</option>
+            {% for y in all_years %}
+            <option value="{{ y }}" {% if year_min == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-select-wrap">
+          <label class="filter-sublabel" for="r_year_max">Al</label>
+          <select name="year_max" id="r_year_max" class="filter-select">
+            <option value="">—</option>
+            {% for y in all_years %}
+            <option value="{{ y }}" {% if year_max == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="filter-group filter-score-group">
+      <legend class="filter-label">Punteggio minimo: <span id="rScoreDisplay">{{ score_min }}</span></legend>
+      <input type="range" name="score_min" id="rScoreMin"
+             min="{{ global_score_min }}" max="{{ global_score_max }}"
+             value="{{ score_min }}" class="filter-range"
+             oninput="document.getElementById('rScoreDisplay').textContent=this.value">
+      <div class="filter-range-labels">
+        <span>{{ global_score_min }}</span><span>{{ global_score_max }}</span>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="random-actions">
+    <button type="submit" name="generate" value="1" class="btn btn--primary btn--large">
+      Genera
+    </button>
+  </div>
+</form>
+
+<!-- Results grid -->
+{% if generated %}
+  {% if albums %}
+  <div class="random-grid">
+    {% for album in albums %}
+    <div class="random-card">
+      {% if album.cover_url %}
+      <img class="random-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="{{ album.name }}">
+      {% else %}
+      <div class="random-card__cover random-card__cover--placeholder"></div>
+      {% endif %}
+      <div class="random-card__overlay">
+        <div class="random-card__name">{{ album.name }}</div>
+        <div class="random-card__artist">{{ album.artist }}</div>
+        {% if album.score %}
+        <div class="random-card__score">{{ album.score | int }}</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">Nessun album corrisponde ai filtri selezionati.</p>
+  {% endif %}
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelector('.random-form').addEventListener('submit', function () {
+    document.getElementById('randomTimestamp').value = Date.now();
+  });
+</script>
+{% endblock %}

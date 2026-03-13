@@ -1,0 +1,451 @@
+import json
+import logging
+import os
+import random as _random
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+from flask import Flask, render_template, request
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from libs.notion import NotionClient
+from libs.getdb import extract_album_info
+from libs.utils import Utils
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+
+# ---------------------------------------------------------------------------
+# Data layer — loaded once at startup
+# ---------------------------------------------------------------------------
+
+_album_df: pd.DataFrame = pd.DataFrame()
+_load_error: str = ""
+
+
+def _load_data() -> None:
+    global _album_df, _load_error
+
+    try:
+        # Support notion-keys.json for local dev, env vars for Render
+        if Path("notion-keys.json").exists():
+            with open("notion-keys.json") as f:
+                keys = json.load(f)
+            notion_token = keys["NOTION_TOKEN"]
+            rating_db_id = keys["RATING_DATABASE_ID"]
+        else:
+            notion_token = os.environ["NOTION_TOKEN"]
+            rating_db_id = os.environ["RATING_DATABASE_ID"]
+
+        client = NotionClient(NOTION_TOKEN=notion_token)
+        pages = client.get_db_pages(DATABASE_ID=rating_db_id)
+
+        albums_data = [extract_album_info(p) for p in pages]
+        df = pd.DataFrame(albums_data)
+
+        # Keep only published albums
+        df = df[df["Published"] == True].reset_index(drop=True)
+
+        # Derived columns
+        df["unique_genre"] = df["Genre"].apply(Utils.map_genres)
+
+        df = df.sort_values(
+            by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
+            ascending=[False, False, False, False, True],
+        ).reset_index(drop=True)
+
+        df["Rank"] = df.index + 1
+
+        tier_bins = [0, 49, 59, 69, 74, 84, 89, 95, 100]
+        tier_labels = [8, 7, 6, 5, 4, 3, 2, 1]
+        df["Tier"] = pd.cut(
+            df["Score"], bins=tier_bins, labels=tier_labels,
+            right=True, include_lowest=True,
+        ).astype(int)
+
+        # Cover URL: prefer local artwork, fall back to external URL
+        def _cover_url(row):
+            picname = row.get("Picname")
+            if picname and pd.notna(picname) and str(picname).strip():
+                return f"/static/artworks/{str(picname).strip()}"
+            cover = row.get("Cover")
+            if cover and pd.notna(cover) and str(cover).strip():
+                return str(cover).strip()
+            return ""
+
+        df["cover_url"] = df.apply(_cover_url, axis=1)
+
+        # Parse dates
+        df["Created"] = pd.to_datetime(df["Created"], utc=True, errors="coerce")
+        if "Release Date" not in df.columns:
+            df["Release Date"] = pd.NaT
+        df["Release Date"] = pd.to_datetime(df["Release Date"], errors="coerce")
+
+        # Ensure Release Year is int-compatible
+        df["Release Year"] = pd.to_numeric(df["Release Year"], errors="coerce")
+
+        _album_df = df
+        logger.info("Loaded %d albums from Notion.", len(df))
+
+    except Exception as exc:
+        _load_error = str(exc)
+        logger.error("Failed to load album data: %s", exc)
+        _album_df = pd.DataFrame()
+
+
+def get_data() -> pd.DataFrame:
+    return _album_df
+
+
+# Load at import time (works with gunicorn workers)
+_load_data()
+
+
+# ---------------------------------------------------------------------------
+# Template filters
+# ---------------------------------------------------------------------------
+
+@app.template_filter('score_color')
+def score_color_filter(score):
+    try:
+        s = float(score)
+        if s >= 90:
+            return '#e8a020'
+        elif s >= 75:
+            return '#4a90d9'
+        elif s >= 60:
+            return '#3a9e6a'
+    except (TypeError, ValueError):
+        pass
+    return '#cccccc'
+
+
+# ---------------------------------------------------------------------------
+# Template helpers
+# ---------------------------------------------------------------------------
+
+def _safe_str(value) -> str:
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
+def _fmt_score(value) -> str:
+    try:
+        f = float(value)
+        if pd.isna(f):
+            return "-"
+        return f"{f:.1f}"
+    except (TypeError, ValueError):
+        return "-"
+
+
+def _row_to_dict(row: pd.Series) -> dict:
+    """Convert a DataFrame row to a clean dict for template rendering."""
+    genres = row.get("Genre", [])
+    if not isinstance(genres, list):
+        genres = []
+
+    score_raw = row.get("Score")
+    score_display = _fmt_score(score_raw)
+    try:
+        score_numeric = float(score_raw) if pd.notna(score_raw) else None
+    except (TypeError, ValueError):
+        score_numeric = None
+
+    tier_raw = row.get("Tier")
+    try:
+        tier = int(tier_raw) if pd.notna(tier_raw) else None
+    except (TypeError, ValueError):
+        tier = None
+
+    rank_raw = row.get("Rank")
+    try:
+        rank = int(rank_raw) if pd.notna(rank_raw) else None
+    except (TypeError, ValueError):
+        rank = None
+
+    release_year_raw = row.get("Release Year")
+    try:
+        release_year = int(release_year_raw) if pd.notna(release_year_raw) else None
+    except (TypeError, ValueError):
+        release_year = None
+
+    release_date = row.get("Release Date")
+    release_date_str = ""
+    if release_date is not None and not (isinstance(release_date, float) and pd.isna(release_date)):
+        try:
+            if hasattr(release_date, "strftime"):
+                release_date_str = release_date.strftime("%-d %b %Y")
+        except (ValueError, AttributeError):
+            pass
+
+    return {
+        "name": _safe_str(row.get("Name")),
+        "artist": _safe_str(row.get("Artist")),
+        "release_year": release_year,
+        "release_date_str": release_date_str,
+        "score": score_numeric,
+        "score_display": score_display,
+        "tier": tier,
+        "rank": rank,
+        "genres": genres,
+        "unique_genre": _safe_str(row.get("unique_genre")),
+        "notes": _safe_str(row.get("Notes")),
+        "best_track": _safe_str(row.get("Best Track")),
+        "cover_url": _safe_str(row.get("cover_url")),
+        "overall": _fmt_score(row.get("Overall")),
+        "production": _fmt_score(row.get("Production")),
+        "lyrics_novelty": _fmt_score(row.get("Lyrics/Novelty")),
+        "masterpiece_tracks": row.get("Masterpiece Tracks"),
+        "masterpiece_track_titles": _safe_str(row.get("Masterpiece Track Titles")),
+        "special": bool(row.get("Special", False)),
+        "language": _safe_str(row.get("Language")),
+        "color": _safe_str(row.get("Color")),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.route("/")
+def index():
+    df = get_data()
+    if df.empty:
+        return render_template("index.html", error=_load_error or "Impossibile caricare i dati.",
+                               albums_this_year=[], albums_archive=[],
+                               n_albums=0, n_artists=0, n_this_year=0,
+                               delta_albums_added=None, delta_this_year=None,
+                               current_year=datetime.now().year, prev_year=datetime.now().year - 1)
+
+    current_year = datetime.now().year
+    prev_year = current_year - 1
+
+    # Stat cards
+    n_albums = len(df)
+    n_artists = int(df["Artist"].nunique())
+    this_year_mask = df["Release Year"] == current_year
+    n_this_year = int(this_year_mask.sum())
+
+    # Deltas for stat cards
+    added_this_year = int((df["Created"].dt.year == current_year).sum())
+    added_prev_year = int((df["Created"].dt.year == prev_year).sum())
+    delta_albums_added = added_this_year - added_prev_year
+
+    n_prev_year_releases = int((df["Release Year"] == prev_year).sum())
+    delta_this_year = n_this_year - n_prev_year_releases
+
+    # Carousel 1: this year, ordered by Release Date desc
+    albums_this_year_df = (
+        df[this_year_mask]
+        .sort_values("Release Date", ascending=False)
+        .head(20)
+    )
+    albums_this_year = [_row_to_dict(row) for _, row in albums_this_year_df.iterrows()]
+
+    # Carousel 2: archive (previous years), ordered by Created desc
+    albums_archive_df = (
+        df[~this_year_mask]
+        .sort_values("Created", ascending=False)
+        .head(20)
+    )
+    albums_archive = [_row_to_dict(row) for _, row in albums_archive_df.iterrows()]
+
+    return render_template(
+        "index.html",
+        error=None,
+        n_albums=n_albums,
+        n_artists=n_artists,
+        n_this_year=n_this_year,
+        delta_albums_added=delta_albums_added,
+        delta_this_year=delta_this_year,
+        albums_this_year=albums_this_year,
+        albums_archive=albums_archive,
+        current_year=current_year,
+        prev_year=prev_year,
+    )
+
+
+@app.route("/top")
+def top_albums():
+    df = get_data()
+    if df.empty:
+        return render_template("top_albums.html", error=_load_error or "Impossibile caricare i dati.",
+                               albums=[], all_unique_genres=[], all_subgenres=[], all_years=[],
+                               score_min=0, global_score_min=0, global_score_max=100,
+                               selected_unique_genres=[], selected_subgenres=[],
+                               year_min=None, year_max=None)
+
+    # Build filter options
+    all_unique_genres = sorted(df["unique_genre"].dropna().unique())
+    all_subgenres = sorted(set(
+        g for genres_list in df["Genre"].dropna()
+        if isinstance(genres_list, list)
+        for g in genres_list
+        if g
+    ))
+    all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+    global_score_min = int(df["Score"].min())
+    global_score_max = int(df["Score"].max())
+
+    # Read GET params
+    selected_unique_genres = request.args.getlist("unique_genre")
+    selected_subgenres = request.args.getlist("subgenre")
+    try:
+        year_min = int(request.args.get("year_min", ""))
+    except (ValueError, TypeError):
+        year_min = None
+    try:
+        year_max = int(request.args.get("year_max", ""))
+    except (ValueError, TypeError):
+        year_max = None
+    try:
+        score_min = int(request.args.get("score_min", global_score_min))
+    except (ValueError, TypeError):
+        score_min = global_score_min
+
+    # Apply filters
+    filtered = df.copy()
+    if selected_unique_genres:
+        filtered = filtered[filtered["unique_genre"].isin(selected_unique_genres)]
+    if selected_subgenres:
+        filtered = filtered[filtered["Genre"].apply(
+            lambda gs: isinstance(gs, list) and any(g in selected_subgenres for g in gs)
+        )]
+    if year_min is not None:
+        filtered = filtered[filtered["Release Year"] >= year_min]
+    if year_max is not None:
+        filtered = filtered[filtered["Release Year"] <= year_max]
+    filtered = filtered[filtered["Score"] >= score_min]
+
+    filtered = filtered.sort_values(
+        by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
+        ascending=[False, False, False, False, True],
+    ).reset_index(drop=True)
+
+    albums = [_row_to_dict(row) for _, row in filtered.iterrows()]
+
+    return render_template(
+        "top_albums.html",
+        error=None,
+        albums=albums,
+        all_unique_genres=all_unique_genres,
+        all_subgenres=all_subgenres,
+        all_years=all_years,
+        selected_unique_genres=selected_unique_genres,
+        selected_subgenres=selected_subgenres,
+        year_min=year_min,
+        year_max=year_max,
+        score_min=score_min,
+        global_score_min=global_score_min,
+        global_score_max=global_score_max,
+    )
+
+
+@app.route("/search")
+def search():
+    df = get_data()
+    query = request.args.get("q", "").strip()
+    albums = []
+    error = None
+
+    if df.empty:
+        error = _load_error or "Impossibile caricare i dati."
+    elif query:
+        mask = (
+            df["Name"].str.contains(query, case=False, na=False)
+            | df["Artist"].str.contains(query, case=False, na=False)
+        )
+        result = df[mask].sort_values("Release Year", ascending=False)
+        albums = [_row_to_dict(row) for _, row in result.iterrows()]
+
+    return render_template("search.html", query=query, albums=albums, error=error)
+
+
+@app.route("/random")
+def random_albums():
+    df = get_data()
+    error = None
+    albums = []
+
+    if df.empty:
+        error = _load_error or "Impossibile caricare i dati."
+        all_genres, all_years = [], []
+        score_min = 0
+        global_score_min, global_score_max = 0, 100
+        selected_genres, year_min, year_max = [], None, None
+        generated = False
+    else:
+        all_genres = sorted(df["unique_genre"].dropna().unique())
+        all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+        global_score_min = int(df["Score"].min())
+        global_score_max = int(df["Score"].max())
+
+        selected_genres = request.args.getlist("genre")
+        try:
+            year_min = int(request.args.get("year_min", ""))
+        except (ValueError, TypeError):
+            year_min = None
+        try:
+            year_max = int(request.args.get("year_max", ""))
+        except (ValueError, TypeError):
+            year_max = None
+        try:
+            score_min = int(request.args.get("score_min", global_score_min))
+        except (ValueError, TypeError):
+            score_min = global_score_min
+
+        generated = "generate" in request.args
+
+        if generated:
+            filtered = df.copy()
+            if selected_genres:
+                filtered = filtered[filtered["unique_genre"].isin(selected_genres)]
+            if year_min is not None:
+                filtered = filtered[filtered["Release Year"] >= year_min]
+            if year_max is not None:
+                filtered = filtered[filtered["Release Year"] <= year_max]
+            filtered = filtered[filtered["Score"] >= score_min]
+
+            sample_size = min(12, len(filtered))
+            if sample_size > 0:
+                sampled = filtered.sample(n=sample_size, replace=False)
+                albums = [_row_to_dict(row) for _, row in sampled.iterrows()]
+
+    return render_template(
+        "random.html",
+        error=error,
+        albums=albums,
+        all_genres=all_genres,
+        all_years=all_years,
+        selected_genres=selected_genres,
+        year_min=year_min if not df.empty else None,
+        year_max=year_max if not df.empty else None,
+        score_min=score_min if not df.empty else 0,
+        global_score_min=global_score_min if not df.empty else 0,
+        global_score_max=global_score_max if not df.empty else 100,
+        generated=generated,
+    )
+
+
+@app.route("/perche")
+def perche():
+    return render_template("perche.html")
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

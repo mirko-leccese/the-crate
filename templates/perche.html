@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Perché? — The Crate{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Perché questa dashboard?</h1>
+</div>
+
+<div class="perche-content">
+  <p>
+    Questa dashboard raccoglie le mie recensioni di album musicali e le rende navigabili e condivisibili.
+  </p>
+  <p>
+    L'obiettivo è semplice: tenere traccia di quello che ascolto, valutarlo in modo sistematico e — perché no — suggerire qualcosa di interessante a chi capita qui.
+  </p>
+  <p>Usa il menu laterale per navigare tra le sezioni:</p>
+  <ul>
+    <li><strong>Top Album</strong> — la classifica completa degli album recensiti</li>
+    <li><strong>Cerca</strong> — cerca un artista o un album</li>
+    <li><strong>Casuale</strong> — lascia che il caso scelga per te</li>
+  </ul>
+
+  <hr class="perche-divider">
+
+  <h2>Criteri di Valutazione</h2>
+  <p>
+    Gli album sono valutati in base a diversi criteri: qualità delle produzioni, dei testi, coerenza del progetto e presenza di brani memorabili. Il voto finale è uno <strong>Score</strong> da 0 a 100.
+  </p>
+
+  <div class="tier-table-wrap">
+    <table class="tier-table">
+      <thead>
+        <tr>
+          <th>Fascia</th>
+          <th>Punteggio</th>
+          <th>Descrizione</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="tier-cell tier-cell--gold">1</td>
+          <td>100 – 95</td>
+          <td><strong>Capolavoro, praticamente perfetto.</strong> Ogni traccia è di altissimo livello, con produzioni raffinate e testi profondi o innovativi. L'ascolto è coerente, coinvolgente e ricco di momenti iconici. Progetto di riferimento assoluto per il genere.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell tier-cell--silver">2</td>
+          <td>94 – 90</td>
+          <td><strong>Altissimo livello, quasi perfetto.</strong> Poche sbavature, grande cura nei dettagli. Produzioni solide, spesso originali, e testi di spessore. Presenza probabile di singoli memorabili o tracce simbolo della carriera dell'artista.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell tier-cell--bronze">3</td>
+          <td>89 – 85</td>
+          <td><strong>Album ottimo.</strong> Molti brani di grande qualità, struttura coerente e ispirata. Alcuni picchi eccellenti, magari affiancati da tracce meno incisive. Lavoro ben pensato, con buone scelte stilistiche.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell">4</td>
+          <td>84 – 75</td>
+          <td><strong>Buon livello.</strong> L'ascolto è piacevole e ricco di spunti interessanti, anche se non sempre omogeneo. Le produzioni sono spesso valide, i testi efficaci ma non sempre brillanti.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell">5</td>
+          <td>74 – 70</td>
+          <td><strong>Album discreto.</strong> Progetto con alcuni momenti riusciti, ma anche brani trascurabili o ripetitivi. Qualche idea interessante, ma l'esecuzione può risultare incerta o discontinua.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell">6</td>
+          <td>69 – 60</td>
+          <td><strong>Sufficiente o poco più.</strong> Qualche spunto positivo affiora, ma il progetto risulta debole sul piano dell'identità o della qualità media. Produzioni o testi spesso anonimi o scolastici.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell">7</td>
+          <td>59 – 50</td>
+          <td><strong>Album insufficiente.</strong> Scarso impatto complessivo, tracce dimenticabili e poche — se non nessuna — da salvare. Le produzioni sono piatte e i testi poco ispirati.</td>
+        </tr>
+        <tr>
+          <td class="tier-cell">8</td>
+          <td>&lt; 50</td>
+          <td><strong>Gravemente insufficiente.</strong> Nessuna traccia rilevante, ascolto povero di contenuti e di idee. Progetto senza direzione artistica, privo di originalità o qualità tecnica.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
