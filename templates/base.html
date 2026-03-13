@@ -11,10 +11,13 @@
 </head>
 <body>
 
-  <!-- Hamburger toggle (mobile only) -->
-  <button class="nav-toggle" id="navToggle" aria-label="Apri menu">
-    <span></span><span></span><span></span>
-  </button>
+  <!-- Mobile top bar (hidden on desktop) -->
+  <header class="mobile-topbar">
+    <a href="{{ url_for('index') }}" class="mobile-topbar__brand">The Crate</a>
+    <button class="mobile-topbar__toggle" id="navToggle" aria-label="Apri menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
 
   <!-- Sidebar -->
   <nav class="sidebar" id="sidebar">
