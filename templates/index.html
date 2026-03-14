@@ -170,33 +170,34 @@
 {% endif %}
 </div>{# /home-content #}
 
-<!-- Album detail modal -->
-<div id="album-modal" class="modal-overlay" aria-modal="true" role="dialog" hidden>
-  <div class="modal-box">
-    <button class="modal-back" id="modal-close" tabindex="0" aria-label="Chiudi">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+<!-- Album detail full-page view -->
+<div id="album-detail" style="display:none;" aria-label="Dettaglio album">
+  <div class="detail-topbar">
+    <button class="detail-back" id="detail-back" tabindex="0" aria-label="Indietro">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"/>
       </svg>
+      Indietro
     </button>
-    <div id="modal-body"></div>
   </div>
+  <div id="detail-body"></div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-  const modal = document.getElementById('album-modal');
-  const modalBody = document.getElementById('modal-body');
+  const detail = document.getElementById('album-detail');
+  const detailBody = document.getElementById('detail-body');
   const homeContent = document.getElementById('home-content');
   let savedScrollY = 0;
 
-  function openModal(tplId) {
+  function openDetail(tplId) {
     const tpl = document.getElementById(tplId);
     if (!tpl) return;
-    modalBody.innerHTML = '';
-    modalBody.appendChild(tpl.content.cloneNode(true));
-    modalBody.querySelectorAll('.album-notes__toggle').forEach(btn => {
+    detailBody.innerHTML = '';
+    detailBody.appendChild(tpl.content.cloneNode(true));
+    detailBody.querySelectorAll('.album-notes__toggle').forEach(btn => {
       btn.addEventListener('click', () => {
         const textEl = btn.previousElementSibling;
         const clamped = textEl.classList.toggle('album-notes__text--clamped');
@@ -204,37 +205,40 @@
       });
     });
     savedScrollY = window.scrollY;
-    modal.hidden = false;
-    requestAnimationFrame(() => modal.classList.add('modal-visible'));
-    homeContent.classList.add('page-blurred');
-    window.scrollTo(0, 0);
+    homeContent.style.opacity = '0';
+    homeContent.style.transition = 'opacity 0.2s ease';
+    homeContent.addEventListener('transitionend', () => {
+      homeContent.style.display = 'none';
+      detail.style.display = 'block';
+      detail.style.opacity = '0';
+      requestAnimationFrame(() => {
+        detail.style.transition = 'opacity 0.2s ease';
+        detail.style.opacity = '1';
+      });
+      window.scrollTo(0, 0);
+    }, { once: true });
   }
 
-  function closeModal() {
-    modal.classList.remove('modal-visible');
-    homeContent.classList.remove('page-blurred');
-    modal.addEventListener('transitionend', () => {
-      modal.hidden = true;
+  function closeDetail() {
+    detail.style.opacity = '0';
+    detail.addEventListener('transitionend', () => {
+      detail.style.display = 'none';
+      homeContent.style.display = '';
+      homeContent.style.transition = 'opacity 0.2s ease';
+      homeContent.style.opacity = '0';
+      requestAnimationFrame(() => { homeContent.style.opacity = '1'; });
       window.scrollTo(0, savedScrollY);
     }, { once: true });
   }
 
   document.querySelectorAll('.shelf-card__poster[data-tpl]').forEach(poster => {
-    poster.addEventListener('click', () => openModal(poster.dataset.tpl));
+    poster.addEventListener('click', () => openDetail(poster.dataset.tpl));
   });
 
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-
-  modal.addEventListener('click', e => {
-    if (e.target === modal) closeModal();
-  });
-
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !modal.hidden) closeModal();
-  });
-
-  document.getElementById('modal-close').addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeModal(); }
+  const backBtn = document.getElementById('detail-back');
+  backBtn.addEventListener('click', closeDetail);
+  backBtn.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeDetail(); }
   });
 </script>
 {% endblock %}

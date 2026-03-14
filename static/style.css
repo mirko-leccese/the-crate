@@ -318,7 +318,7 @@ ul { list-style: none; }
 
 .shelf__track {
   display: flex;
-  gap: 14px;
+  gap: 8px;
   overflow-x: auto;
   padding-bottom: 12px;
   scroll-snap-type: x mandatory;
@@ -330,16 +330,16 @@ ul { list-style: none; }
 
 /* --- Poster cards (carousel) ----------------------------- */
 .shelf-card {
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 232px;
+  max-width: 232px;
   scroll-snap-align: start;
   flex-shrink: 0;
 }
 
 .shelf-card__poster {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 232px;
+  height: 232px;
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
@@ -445,16 +445,16 @@ ul { list-style: none; }
 }
 
 .album-card__cover img {
-  width: 200px;
-  height: 200px;
+  width: 232px;
+  height: 232px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   display: block;
 }
 
 .album-card__cover-placeholder {
-  width: 200px;
-  height: 200px;
+  width: 232px;
+  height: 232px;
   border-radius: var(--radius-sm);
   background: var(--bg-muted);
   display: flex;
@@ -1172,63 +1172,42 @@ details[open] .score-details__summary::before { content: '▾ '; }
   color: var(--text-primary);
 }
 
-/* --- Album modal ----------------------------------------- */
-#album-modal[hidden] { display: none !important; }
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: rgba(0,0,0,0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+/* --- Album detail full-page view ------------------------- */
+#album-detail {
+  padding: 0 0 48px;
 }
 
-.modal-overlay.modal-visible {
-  opacity: 1;
+.detail-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(248, 248, 246, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 12px 24px;
 }
 
-.modal-box {
-  position: relative;
-  background: var(--bg-surface);
-  border-radius: 12px;
-  padding: 32px;
-  width: 90%;
-  max-width: 860px;
-  min-width: 320px;
-  max-height: 90vh;
-  overflow-y: auto;
-  transform: translateY(16px);
-  transition: transform 0.2s ease;
-}
-
-.modal-overlay.modal-visible .modal-box {
-  transform: translateY(0);
-}
-
-.modal-back {
+.detail-back {
   background: none;
   border: none;
   cursor: pointer;
-  color: #0A0A0A;
-  padding: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 10px 6px 6px;
   border-radius: 6px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
+  gap: 4px;
   transition: background 0.15s;
 }
-.modal-back:hover { background: #F0F0F0; }
+.detail-back:hover { background: var(--bg-muted); }
 
-.page-blurred {
-  filter: blur(4px);
-  transition: filter 0.2s ease;
-  pointer-events: none;
+#detail-body {
+  max-width: 860px;
+  width: 90%;
+  margin: 32px auto 0;
 }
 
 /* --- Desktop: narrower centered album list --------------- */
