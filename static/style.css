@@ -114,7 +114,9 @@ ul { list-style: none; }
 }
 
 .sidebar__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-size: 14px;
   font-weight: 400;
   color: var(--text-muted-on-dark);
@@ -123,6 +125,14 @@ ul { list-style: none; }
   border-left: 3px solid transparent;
   text-decoration: none;
 }
+
+.sidebar__icon {
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.sidebar__link:hover .sidebar__icon { opacity: 0.85; }
+.sidebar__link--active .sidebar__icon { opacity: 1; }
 
 .sidebar__link:hover {
   background: var(--bg-dark-hover);
@@ -227,37 +237,49 @@ ul { list-style: none; }
 
 /* --- Stat cards ------------------------------------------ */
 .stat-cards {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 2.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
   background: var(--bg-surface);
   border-radius: var(--radius-md);
-  border-top: 3px solid var(--border-light);
-  padding: 20px 24px;
-  min-width: 140px;
-  flex: 1;
+  border-top: 2px solid var(--border-light);
+  padding: 14px 16px;
   box-shadow: var(--shadow-sm);
 }
 
-.stat-card { border-top-color: var(--blue); }
-
 .stat-card__value {
-  font-size: 52px;
+  font-size: 36px;
   font-weight: 300;
   line-height: 1;
-  letter-spacing: -2px;
+  letter-spacing: -1.5px;
   color: var(--blue);
 }
 
 .stat-card__label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
+
+.stat-card__value--dark {
+  color: #0A0A0A;
+}
+
+.stat-card__sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.delta-pos { color: #00875A; }
+.delta-neg { color: #E8001C; }
 
 .stat-card__delta {
   display: inline-block;
@@ -356,8 +378,7 @@ ul { list-style: none; }
 .shelf-card__artist {
   font-size: 10px;
   color: rgba(255,255,255,0.70);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.3px;
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -378,9 +399,22 @@ ul { list-style: none; }
 .shelf-card__score {
   font-size: 14px;
   font-weight: 600;
-  color: var(--blue);
+  color: #4A9EE0;
   margin-top: 6px;
   text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+}
+
+.cover-link {
+  display: block;
+  text-decoration: none;
+}
+
+.cover-link .shelf-card__cover {
+  transition: transform 0.15s ease;
+}
+
+.cover-link:hover .shelf-card__cover {
+  transform: scale(1.03);
 }
 
 /* --- Album list (Top Albums + Search) -------------------- */
@@ -400,14 +434,15 @@ ul { list-style: none; }
   background: var(--bg-surface);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  border-left: 4px solid var(--blue);
+  border-left: 4px solid transparent;
   overflow: hidden;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s, border-left-color 0.2s;
 }
 
 .album-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+  border-left-color: var(--blue);
 }
 
 .album-card__inner {
@@ -495,6 +530,11 @@ ul { list-style: none; }
   background: var(--blue-bg);
   border-radius: 20px;
   padding: 2px 8px;
+}
+
+.genre-tag--gray {
+  color: #555555;
+  background: #E8E8E8;
 }
 
 /* Notes */
@@ -916,9 +956,10 @@ details[open] .score-details__summary::before { content: '▾ '; }
 
 .random-card__score {
   font-size: 13px;
-  font-weight: 300;
-  color: var(--accent);
+  font-weight: 600;
+  color: #4A9EE0;
   margin-top: 4px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
 }
 
 /* --- Perché page ----------------------------------------- */
@@ -974,6 +1015,151 @@ details[open] .score-details__summary::before { content: '▾ '; }
 .tier-cell--silver { color: var(--text-secondary); }
 .tier-cell--bronze { color: var(--score-green); }
 
+/* --- Shelf card date ------------------------------------- */
+.shelf-card__date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555555;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+
+/* --- Section divider & header row ----------------------- */
+.section-divider {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 2.5rem 0;
+}
+
+.shelf__header--row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.shelf__see-all {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+.shelf__see-all:hover {
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+  text-decoration: none;
+}
+
+/* --- Home ranking table --------------------------------- */
+.home-ranking {
+  margin-bottom: 2.5rem;
+}
+
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ranking-table thead tr {
+  border-bottom: 1.5px solid var(--text-primary);
+}
+
+.ranking-table thead th {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 0 8px;
+  text-align: left;
+  font-weight: 500;
+}
+.ranking-table thead th:last-child { text-align: right; }
+
+.ranking-table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: background 0.1s;
+}
+.ranking-table tbody tr:hover { background: var(--bg-muted); }
+
+.ranking-table tbody td {
+  padding: 10px 0;
+  vertical-align: middle;
+}
+
+.rank-n {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: #0A0A0A;
+  width: 28px;
+  padding-right: 8px;
+}
+
+.rank-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  object-fit: cover;
+  display: block;
+  flex-shrink: 0;
+}
+
+.rank-thumb--placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  background: var(--bg-muted);
+  flex-shrink: 0;
+}
+
+.rank-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rank-text .r-name {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.rank-text .r-artist {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+
+.rank-genre {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0A0A0A;
+  padding: 0 16px;
+}
+
+.rank-score-cell {
+  text-align: center;
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+/* --- Desktop: narrower centered album list --------------- */
+@media (min-width: 641px) {
+  .album-list {
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 /* --- Responsive (mobile ≤ 640px) ------------------------- */
 @media (max-width: 640px) {
   /* Mobile top bar */
@@ -996,10 +1182,10 @@ details[open] .score-details__summary::before { content: '▾ '; }
   /* Page header */
   .page-title { font-size: 21px; }
 
-  /* Stat cards: single column */
-  .stat-cards { flex-direction: column; gap: 10px; }
-  .stat-card { padding: 14px 16px; }
-  .stat-card__value { font-size: 36px; letter-spacing: -1px; }
+  /* Stat cards: 2×2 grid */
+  .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-card { padding: 12px 14px; }
+  .stat-card__value { font-size: 28px; letter-spacing: -1px; }
 
   /* Carousel cards */
   .shelf-card { min-width: 150px; max-width: 150px; }

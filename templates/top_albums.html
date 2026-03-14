@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Top Album — The Crate{% endblock %}
+{% block title %}Archivio — The Crate{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">Top Album</h1>
+  <h1 class="page-title">Archivio</h1>
   <p class="page-subtitle">La classifica completa degli album recensiti, ordinata per punteggio.</p>
 </div>
 
@@ -149,10 +149,6 @@
     <details class="score-details">
       <summary class="score-details__summary">Dettaglio punteggi</summary>
       <div class="score-details__body">
-        <div class="score-metric">
-          <span class="score-metric__label">Impressione generale</span>
-          <span class="score-metric__value">{{ album.overall }}/10</span>
-        </div>
         <div class="score-metric">
           <span class="score-metric__label">Produzione</span>
           <span class="score-metric__value">{{ album.production }}/3.0</span>
