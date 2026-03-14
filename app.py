@@ -230,6 +230,10 @@ def index():
                                albums_this_year=[], albums_archive=[],
                                n_albums=0, n_artists=0, n_this_year=0,
                                delta_albums_added=None, delta_this_year=None,
+                               added_this_year=0, pct_albums_change=None,
+                               n_genres=0, avg_score=None,
+                               delta_artists_added=None, pct_artists_change=None,
+                               top_ranking=[],
                                current_year=datetime.now().year, prev_year=datetime.now().year - 1)
 
     current_year = datetime.now().year
@@ -248,6 +252,39 @@ def index():
 
     n_prev_year_releases = int((df["Release Year"] == prev_year).sum())
     delta_this_year = n_this_year - n_prev_year_releases
+
+    # Additional homepage stats
+    # Distinct raw genre tags
+    n_genres = len(set(
+        g for genres_list in df["Genre"].dropna()
+        if isinstance(genres_list, list)
+        for g in genres_list
+        if g
+    ))
+
+    # Average score
+    score_series = df["Score"].dropna()
+    avg_score = round(float(score_series.mean()), 1) if not score_series.empty else None
+
+    # Percentage change in albums added this year vs prev year
+    pct_albums_change = None
+    if added_prev_year > 0:
+        pct_albums_change = round((added_this_year - added_prev_year) / added_prev_year * 100)
+
+    # Distinct artists in albums added this year vs prev year
+    n_artists_added_this_year = int(df[df["Created"].dt.year == current_year]["Artist"].nunique())
+    n_artists_added_prev_year = int(df[df["Created"].dt.year == prev_year]["Artist"].nunique())
+    delta_artists_added = n_artists_added_this_year - n_artists_added_prev_year
+    pct_artists_change = None
+    if n_artists_added_prev_year > 0:
+        pct_artists_change = round((n_artists_added_this_year - n_artists_added_prev_year) / n_artists_added_prev_year * 100)
+
+    # Top 5 ranking
+    top5_df = df.sort_values(
+        by=["Score", "Masterpiece Tracks", "Release Year"],
+        ascending=[False, False, True],
+    ).head(5)
+    top_ranking = [_row_to_dict(row) for _, row in top5_df.iterrows()]
 
     # Carousel 1: this year, ordered by Release Date desc
     albums_this_year_df = (
@@ -273,6 +310,13 @@ def index():
         n_this_year=n_this_year,
         delta_albums_added=delta_albums_added,
         delta_this_year=delta_this_year,
+        added_this_year=added_this_year,
+        pct_albums_change=pct_albums_change,
+        n_genres=n_genres,
+        avg_score=avg_score,
+        delta_artists_added=delta_artists_added,
+        pct_artists_change=pct_artists_change,
+        top_ranking=top_ranking,
         albums_this_year=albums_this_year,
         albums_archive=albums_archive,
         current_year=current_year,
@@ -312,7 +356,7 @@ def top_albums():
     try:
         year_max = int(request.args.get("year_max", ""))
     except (ValueError, TypeError):
-        year_max = None
+        year_max = all_years[0] if all_years else None
     try:
         score_min = int(request.args.get("score_min", global_score_min))
     except (ValueError, TypeError):

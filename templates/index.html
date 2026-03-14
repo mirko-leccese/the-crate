@@ -4,7 +4,6 @@
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">The Crate</h1>
-  <p class="page-subtitle">La mia collezione di album recensiti</p>
 </div>
 
 {% if error %}
@@ -14,26 +13,32 @@
 <!-- Stat cards -->
 <div class="stat-cards">
   <div class="stat-card">
-    <div class="stat-card__value">{{ n_albums }}</div>
-    <div class="stat-card__label">Album recensiti</div>
-    {% if delta_albums_added is not none %}
-    <div class="stat-card__delta {% if delta_albums_added > 0 %}delta--positive{% elif delta_albums_added < 0 %}delta--negative{% else %}delta--neutral{% endif %}">
-      {% if delta_albums_added > 0 %}+{% endif %}{{ delta_albums_added }} vs anno scorso
-    </div>
+    <div class="stat-card__value stat-card__value--dark">{{ n_albums }}</div>
+    <div class="stat-card__label">Album totali</div>
+    {% if added_this_year %}
+    <div class="stat-card__sub {% if added_this_year > 0 %}delta-pos{% elif added_this_year < 0 %}delta-neg{% endif %}">{% if added_this_year > 0 %}↑ {% elif added_this_year < 0 %}↓ {% endif %}{{ added_this_year }} quest'anno</div>
+    {% endif %}
+    {% if pct_albums_change is not none %}
+    <div class="stat-card__sub {% if pct_albums_change > 0 %}delta-pos{% elif pct_albums_change < 0 %}delta-neg{% endif %}">{% if pct_albums_change > 0 %}↑ {% elif pct_albums_change < 0 %}↓ {% endif %}{% if pct_albums_change > 0 %}+{% endif %}{{ pct_albums_change }}% vs {{ prev_year }}</div>
     {% endif %}
   </div>
   <div class="stat-card">
-    <div class="stat-card__value">{{ n_artists }}</div>
-    <div class="stat-card__label">Artisti unici</div>
+    <div class="stat-card__value stat-card__value--dark">{{ n_artists }}</div>
+    <div class="stat-card__label">Artisti diversi</div>
+    {% if delta_artists_added is not none %}
+    <div class="stat-card__sub {% if delta_artists_added > 0 %}delta-pos{% elif delta_artists_added < 0 %}delta-neg{% endif %}">{% if delta_artists_added > 0 %}↑ {% elif delta_artists_added < 0 %}↓ {% endif %}{% if delta_artists_added > 0 %}+{% endif %}{{ delta_artists_added }} vs {{ prev_year }}</div>
+    {% endif %}
+    {% if pct_artists_change is not none %}
+    <div class="stat-card__sub {% if pct_artists_change > 0 %}delta-pos{% elif pct_artists_change < 0 %}delta-neg{% endif %}">{% if pct_artists_change > 0 %}↑ {% elif pct_artists_change < 0 %}↓ {% endif %}{% if pct_artists_change > 0 %}+{% endif %}{{ pct_artists_change }}%</div>
+    {% endif %}
   </div>
   <div class="stat-card">
-    <div class="stat-card__value">{{ n_this_year }}</div>
-    <div class="stat-card__label">Album del {{ current_year }}</div>
-    {% if delta_this_year is not none %}
-    <div class="stat-card__delta {% if delta_this_year > 0 %}delta--positive{% elif delta_this_year < 0 %}delta--negative{% else %}delta--neutral{% endif %}">
-      {% if delta_this_year > 0 %}+{% endif %}{{ delta_this_year }} vs {{ prev_year }}
-    </div>
-    {% endif %}
+    <div class="stat-card__value stat-card__value--dark">{{ n_genres }}</div>
+    <div class="stat-card__label">Generi</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{% if avg_score %}{{ avg_score }}{% else %}—{% endif %}</div>
+    <div class="stat-card__label">Voto medio</div>
   </div>
 </div>
 
@@ -41,26 +46,33 @@
 {% if albums_this_year %}
 <section class="shelf">
   <div class="shelf__header">
-    <h2 class="shelf__title">Quest'anno</h2>
-    <p class="shelf__subtitle">Le ultime uscite del {{ current_year }}</p>
+    <h2 class="shelf__title">Nuove uscite</h2>
+    <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche oggi?</p>
   </div>
   <div class="shelf__track">
     {% for album in albums_this_year %}
     <div class="shelf-card">
-      <div class="shelf-card__poster">
-        {% if album.cover_url %}
-        <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
-        {% else %}
-        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
-        {% endif %}
-        <div class="shelf-card__overlay">
-          <div class="shelf-card__artist">{{ album.artist }}</div>
-          <div class="shelf-card__name">{{ album.name }}</div>
-          {% if album.score %}
-          <div class="shelf-card__score">{{ album.score | int }}/100</div>
+      <a href="/search?q={{ album.name | replace(' ', '+') }}" class="cover-link">
+        <div class="shelf-card__poster">
+          {% if album.cover_url %}
+          <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
+          {% else %}
+          <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
           {% endif %}
+          <div class="shelf-card__overlay">
+            <div class="shelf-card__artist">{{ album.artist }}</div>
+            <div class="shelf-card__name">{{ album.name }}</div>
+            {% if album.score %}
+            <div class="shelf-card__score">{{ album.score | int }}</div>
+            {% endif %}
+          </div>
         </div>
+      </a>
+      {% if album.release_date_str or album.unique_genre %}
+      <div class="shelf-card__date">
+        {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
       </div>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
@@ -71,29 +83,81 @@
 {% if albums_archive %}
 <section class="shelf">
   <div class="shelf__header">
-    <h2 class="shelf__title">Dal passato</h2>
-    <p class="shelf__subtitle">Riscoperte dal catalogo storico</p>
+    <h2 class="shelf__title">Digging from the Crate</h2>
+    <p class="shelf__subtitle">Riscoperte dal catalogo storico — perché ogni disco merita una seconda chance.</p>
   </div>
   <div class="shelf__track">
     {% for album in albums_archive %}
     <div class="shelf-card">
-      <div class="shelf-card__poster">
-        {% if album.cover_url %}
-        <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
-        {% else %}
-        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
-        {% endif %}
-        <div class="shelf-card__overlay">
-          <div class="shelf-card__artist">{{ album.artist }}</div>
-          <div class="shelf-card__name">{{ album.name }}</div>
-          {% if album.score %}
-          <div class="shelf-card__score">{{ album.score | int }}/100</div>
+      <a href="/search?q={{ album.name | replace(' ', '+') }}" class="cover-link">
+        <div class="shelf-card__poster">
+          {% if album.cover_url %}
+          <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
+          {% else %}
+          <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
           {% endif %}
+          <div class="shelf-card__overlay">
+            <div class="shelf-card__artist">{{ album.artist }}</div>
+            <div class="shelf-card__name">{{ album.name }}</div>
+            {% if album.score %}
+            <div class="shelf-card__score">{{ album.score | int }}</div>
+            {% endif %}
+          </div>
         </div>
+      </a>
+      {% if album.release_date_str or album.unique_genre %}
+      <div class="shelf-card__date">
+        {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
       </div>
+      {% endif %}
     </div>
     {% endfor %}
   </div>
+</section>
+{% endif %}
+
+<!-- Top di sempre -->
+{% if top_ranking %}
+<hr class="section-divider">
+<section class="home-ranking">
+  <div class="shelf__header shelf__header--row">
+    <div>
+      <h2 class="shelf__title">Top di sempre</h2>
+    </div>
+    <a href="{{ url_for('top_albums') }}" class="shelf__see-all">Classifica completa →</a>
+  </div>
+  <table class="ranking-table">
+    <thead>
+      <tr>
+        <th style="width:28px">#</th>
+        <th>Album</th>
+        <th>Genere</th>
+        <th style="text-align:center">Voto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for album in top_ranking %}
+      <tr>
+        <td class="rank-n">{{ loop.index }}</td>
+        <td>
+          <div class="rank-info-cell">
+            {% if album.cover_url %}
+            <img class="rank-thumb" src="{{ album.cover_url }}" alt="" loading="lazy">
+            {% else %}
+            <div class="rank-thumb rank-thumb--placeholder"></div>
+            {% endif %}
+            <div class="rank-text">
+              <div class="r-name">{{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}</div>
+              <div class="r-artist">{{ album.artist }}</div>
+            </div>
+          </div>
+        </td>
+        <td class="rank-genre">{{ album.unique_genre }}</td>
+        <td class="rank-score-cell">{{ album.score | int }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 {% endif %}
 
