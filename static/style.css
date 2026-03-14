@@ -342,7 +342,7 @@ ul { list-style: none; }
   height: 200px;
   border-radius: var(--radius-md);
   overflow: hidden;
-  cursor: default;
+  cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: var(--shadow-sm);
 }
@@ -404,18 +404,6 @@ ul { list-style: none; }
   text-shadow: 0 1px 3px rgba(0,0,0,0.55);
 }
 
-.cover-link {
-  display: block;
-  text-decoration: none;
-}
-
-.cover-link .shelf-card__cover {
-  transition: transform 0.15s ease;
-}
-
-.cover-link:hover .shelf-card__cover {
-  transform: scale(1.03);
-}
 
 /* --- Album list (Top Albums + Search) -------------------- */
 .result-count {
@@ -457,16 +445,16 @@ ul { list-style: none; }
 }
 
 .album-card__cover img {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   display: block;
 }
 
 .album-card__cover-placeholder {
-  width: 180px;
-  height: 180px;
+  width: 200px;
+  height: 200px;
   border-radius: var(--radius-sm);
   background: var(--bg-muted);
   display: flex;
@@ -964,19 +952,52 @@ details[open] .score-details__summary::before { content: '▾ '; }
 
 /* --- Perché page ----------------------------------------- */
 .perche-content {
-  max-width: 680px;
-  line-height: 1.7;
+  max-width: 900px;
+  line-height: 1.75;
 }
 
-.perche-content p { margin-bottom: 1rem; }
-.perche-content ul { margin: 0.5rem 0 1rem 1.2rem; list-style: disc; }
+.perche-hero {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 48px;
+}
+
+.perche-hero-image img {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+
+.perche-content p { margin-bottom: 1.2em; }
+.perche-content ul { margin: 0.5rem 0 1.2em 1.2rem; list-style: disc; }
 .perche-content li { margin-bottom: 0.4rem; }
-.perche-content h2 { font-size: 18px; font-weight: 500; margin: 1.5rem 0 0.75rem; letter-spacing: -0.3px; }
+.perche-content h2 { font-size: 18px; font-weight: 500; margin: 2em 0 0.5em; letter-spacing: -0.3px; }
+.perche-content h2:first-child { margin-top: 0; }
 
 .perche-divider {
   border: none;
-  border-top: 1px solid var(--border-light);
-  margin: 2rem 0;
+  border-top: 1px solid #EFEFEF;
+  margin: 32px 0;
+}
+
+.perche-crate-box {
+  margin-top: 40px;
+  background: #F5F5F5;
+  border-radius: 10px;
+  padding: 20px 24px;
+}
+
+.perche-crate-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.3px;
 }
 
 .tier-table-wrap {
@@ -1151,6 +1172,65 @@ details[open] .score-details__summary::before { content: '▾ '; }
   color: var(--text-primary);
 }
 
+/* --- Album modal ----------------------------------------- */
+#album-modal[hidden] { display: none !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.modal-overlay.modal-visible {
+  opacity: 1;
+}
+
+.modal-box {
+  position: relative;
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 32px;
+  width: 90%;
+  max-width: 860px;
+  min-width: 320px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(16px);
+  transition: transform 0.2s ease;
+}
+
+.modal-overlay.modal-visible .modal-box {
+  transform: translateY(0);
+}
+
+.modal-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #0A0A0A;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  transition: background 0.15s;
+}
+.modal-back:hover { background: #F0F0F0; }
+
+.page-blurred {
+  filter: blur(4px);
+  transition: filter 0.2s ease;
+  pointer-events: none;
+}
+
 /* --- Desktop: narrower centered album list --------------- */
 @media (min-width: 641px) {
   .album-list {
@@ -1190,6 +1270,7 @@ details[open] .score-details__summary::before { content: '▾ '; }
   /* Carousel cards */
   .shelf-card { min-width: 150px; max-width: 150px; }
   .shelf-card__poster { width: 150px; height: 150px; }
+  .shelf-card__date { flex-direction: column; align-items: flex-start; gap: 4px; }
 
   /* Album cards: vertical stack */
   .album-card { border-left: none; }
@@ -1231,4 +1312,14 @@ details[open] .score-details__summary::before { content: '▾ '; }
 
   /* Filter panel */
   .filter-year-score { flex-direction: column; gap: 16px; }
+
+}
+
+@media (max-width: 768px) {
+  .perche-hero {
+    grid-template-columns: 1fr;
+  }
+  .perche-hero-image {
+    order: -1;
+  }
 }

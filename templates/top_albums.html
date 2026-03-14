@@ -45,6 +45,28 @@
       </select>
     </div>
 
+    <!-- Lingua + Colore -->
+    <div class="filter-row" style="gap: 20px; margin-bottom: 20px;">
+      <div class="filter-select-wrap">
+        <label class="filter-label" for="languageSelect">Lingua</label>
+        <select name="language" id="languageSelect" class="filter-select">
+          <option value="">Tutte le lingue</option>
+          {% for lang in all_languages %}
+          <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-select-wrap">
+        <label class="filter-label" for="colorSelect">Colore Copertina</label>
+        <select name="color" id="colorSelect" class="filter-select">
+          <option value="">Tutti i colori</option>
+          {% for col in all_colors %}
+          <option value="{{ col }}" {% if col == selected_color %}selected{% endif %}>{{ col }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
     <!-- Year + score -->
     <div class="filter-year-score">
       <fieldset class="filter-group">
@@ -53,7 +75,6 @@
           <div class="filter-select-wrap">
             <label class="filter-sublabel" for="year_min">Dal</label>
             <select name="year_min" id="year_min" class="filter-select">
-              <option value="">—</option>
               {% for y in all_years %}
               <option value="{{ y }}" {% if year_min == y %}selected{% endif %}>{{ y }}</option>
               {% endfor %}
@@ -62,7 +83,6 @@
           <div class="filter-select-wrap">
             <label class="filter-sublabel" for="year_max">Al</label>
             <select name="year_max" id="year_max" class="filter-select">
-              <option value="">—</option>
               {% for y in all_years %}
               <option value="{{ y }}" {% if year_max == y %}selected{% endif %}>{{ y }}</option>
               {% endfor %}
@@ -97,72 +117,7 @@
 <div class="album-list">
   {% for album in albums %}
   {% set pos = loop.index %}
-  <article class="album-card">
-    <div class="album-card__inner">
-      <div class="album-card__cover">
-        {% if album.cover_url %}
-        <img src="{{ album.cover_url }}" alt="Cover di {{ album.name }}" loading="lazy">
-        {% else %}
-        <div class="album-card__cover-placeholder">—</div>
-        {% endif %}
-      </div>
-
-      <div class="album-card__info">
-        <div class="album-card__heading">
-          <span class="album-card__position">
-            {% if pos == 1 %}🥇{% elif pos == 2 %}🥈{% elif pos == 3 %}🥉{% else %}{{ pos }}°{% endif %}
-          </span>
-          <h3 class="album-card__title">
-            {{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}{% if album.special %} ✰{% endif %}
-          </h3>
-        </div>
-
-        <p class="album-card__artist">{{ album.artist }}</p>
-
-        {% if album.genres %}
-        <div class="album-card__tags">
-          {% for g in album.genres %}
-          <span class="genre-tag">{{ g }}</span>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if album.notes %}
-        <div class="album-notes">
-          <p class="album-notes__text album-notes__text--clamped">{{ album.notes }}</p>
-          <button class="album-notes__toggle" type="button">Leggi di più</button>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="album-card__score-block">
-        <div class="album-card__score-numeral">{% if album.score %}{{ album.score | int }}{% endif %}</div>
-        {% if album.tier or album.rank %}
-        <div class="album-card__score-meta">
-          {% if album.tier %}Tier {{ album.tier }}°{% endif %}{% if album.tier and album.rank %} · {% endif %}{% if album.rank %}Rank {{ album.rank }}°{% endif %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Score details (expandable) -->
-    <details class="score-details">
-      <summary class="score-details__summary">Dettaglio punteggi</summary>
-      <div class="score-details__body">
-        <div class="score-metric">
-          <span class="score-metric__label">Produzione</span>
-          <span class="score-metric__value">{{ album.production }}/3.0</span>
-        </div>
-        <div class="score-metric">
-          <span class="score-metric__label">Voce / Testi</span>
-          <span class="score-metric__value">{{ album.lyrics_novelty }}/3.0</span>
-        </div>
-        {% if album.masterpiece_track_titles %}
-        <p class="score-details__tracks">Tracce top: {{ album.masterpiece_track_titles }}</p>
-        {% endif %}
-      </div>
-    </details>
-  </article>
+  {% include 'partials/album_card.html' %}
   {% else %}
   <p class="empty-state">Nessun album corrisponde ai filtri selezionati.</p>
   {% endfor %}

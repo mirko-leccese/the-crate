@@ -330,8 +330,10 @@ def top_albums():
     if df.empty:
         return render_template("top_albums.html", error=_load_error or "Impossibile caricare i dati.",
                                albums=[], all_unique_genres=[], all_subgenres=[], all_years=[],
+                               all_languages=[], all_colors=[],
                                score_min=0, global_score_min=0, global_score_max=100,
                                selected_unique_genres=[], selected_subgenres=[],
+                               selected_language="", selected_color="",
                                year_min=None, year_max=None)
 
     # Build filter options
@@ -343,20 +345,25 @@ def top_albums():
         if g
     ))
     all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+    all_languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+    all_colors = sorted([x for x in df["Color"].dropna().unique() if str(x).strip()])
     global_score_min = int(df["Score"].min())
     global_score_max = int(df["Score"].max())
+    dataset_year_max = int(df["Release Year"].dropna().max()) if not df["Release Year"].dropna().empty else None
 
     # Read GET params
     selected_unique_genres = request.args.getlist("unique_genre")
     selected_subgenres = request.args.getlist("subgenre")
+    selected_language = request.args.get("language", "")
+    selected_color = request.args.get("color", "")
     try:
         year_min = int(request.args.get("year_min", ""))
     except (ValueError, TypeError):
-        year_min = None
+        year_min = dataset_year_max
     try:
         year_max = int(request.args.get("year_max", ""))
     except (ValueError, TypeError):
-        year_max = all_years[0] if all_years else None
+        year_max = dataset_year_max
     try:
         score_min = int(request.args.get("score_min", global_score_min))
     except (ValueError, TypeError):
@@ -375,6 +382,10 @@ def top_albums():
     if year_max is not None:
         filtered = filtered[filtered["Release Year"] <= year_max]
     filtered = filtered[filtered["Score"] >= score_min]
+    if selected_language:
+        filtered = filtered[filtered["Language"] == selected_language]
+    if selected_color:
+        filtered = filtered[filtered["Color"] == selected_color]
 
     filtered = filtered.sort_values(
         by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
@@ -390,8 +401,12 @@ def top_albums():
         all_unique_genres=all_unique_genres,
         all_subgenres=all_subgenres,
         all_years=all_years,
+        all_languages=all_languages,
+        all_colors=all_colors,
         selected_unique_genres=selected_unique_genres,
         selected_subgenres=selected_subgenres,
+        selected_language=selected_language,
+        selected_color=selected_color,
         year_min=year_min,
         year_max=year_max,
         score_min=score_min,
@@ -429,17 +444,23 @@ def random_albums():
     if df.empty:
         error = _load_error or "Impossibile caricare i dati."
         all_genres, all_years = [], []
+        all_languages, all_colors = [], []
         score_min = 0
         global_score_min, global_score_max = 0, 100
         selected_genres, year_min, year_max = [], None, None
+        selected_language, selected_color = "", ""
         generated = False
     else:
         all_genres = sorted(df["unique_genre"].dropna().unique())
         all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+        all_languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+        all_colors = sorted([x for x in df["Color"].dropna().unique() if str(x).strip()])
         global_score_min = int(df["Score"].min())
         global_score_max = int(df["Score"].max())
 
         selected_genres = request.args.getlist("genre")
+        selected_language = request.args.get("language", "")
+        selected_color = request.args.get("color", "")
         try:
             year_min = int(request.args.get("year_min", ""))
         except (ValueError, TypeError):
@@ -464,6 +485,10 @@ def random_albums():
             if year_max is not None:
                 filtered = filtered[filtered["Release Year"] <= year_max]
             filtered = filtered[filtered["Score"] >= score_min]
+            if selected_language:
+                filtered = filtered[filtered["Language"] == selected_language]
+            if selected_color:
+                filtered = filtered[filtered["Color"] == selected_color]
 
             sample_size = min(12, len(filtered))
             if sample_size > 0:
@@ -476,7 +501,11 @@ def random_albums():
         albums=albums,
         all_genres=all_genres,
         all_years=all_years,
+        all_languages=all_languages,
+        all_colors=all_colors,
         selected_genres=selected_genres,
+        selected_language=selected_language if not df.empty else "",
+        selected_color=selected_color if not df.empty else "",
         year_min=year_min if not df.empty else None,
         year_max=year_max if not df.empty else None,
         score_min=score_min if not df.empty else 0,

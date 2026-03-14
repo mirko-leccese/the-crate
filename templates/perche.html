@@ -1,30 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Perché? — The Crate{% endblock %}
+{% block title %}Cos'è The Crate? — The Crate{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h1 class="page-title">Perché questa dashboard?</h1>
-</div>
-
 <div class="perche-content">
+
+  <div class="perche-hero">
+    <div class="perche-hero-text">
+      <div class="page-header">
+        <h1 class="page-title">Cos'è The Crate?</h1>
+      </div>
+      <p>
+        The Crate non è una rivista musicale. Non è una guida definitiva agli album più importanti della storia. E sicuramente non è il luogo dove troverai la verità assoluta sulla musica.
+      </p>
+      <p>
+        Qui troverai qualcosa di molto più semplice: il mio archivio personale di ascolti.
+      </p>
+      <p><em>E allora perché dovrebbe interessarti?</em></p>
+      <p>
+        Negli anni ho iniziato ad ascoltare musica con più attenzione, cercando di uscire dalla comfort zone e di scoprire dischi di epoche, generi e scene diverse. A un certo punto mi è venuta l'idea più semplice e banale del mondo: tenere traccia di quello che ascolto. Questo sito nasce esattamente da lì.
+      </p>
+      <p>
+        Non troverai recensioni tecniche, analisi musicologiche o giudizi "autorevoli". Troverai le opinioni di un appassionato qualsiasi: uno che ascolta tanti dischi, a volte li ama, a volte li capisce solo a metà, e altre volte li rivaluta dopo mesi — o anni. In altre parole: i giudizi di un perfetto sconosciuto su Internet. E va benissimo così.
+      </p>
+      <p>
+        L'obiettivo non è dirti cosa dovresti ascoltare o cosa dovresti pensare di un album. È costruire un archivio di ascolti, scoperte e impressioni nel tempo — perché sì, chi mi conosce sa che ho una certa <em>ossessione</em> per l'organizzazione, e non c'era motivo per cui una delle mie passioni principali ne fosse esente.
+      </p>
+    </div>
+    <div class="perche-hero-image">
+      <img src="{{ url_for('static', filename='crate-page.png') }}" alt="Crate digging">
+    </div>
+  </div>
+
   <p>
-    Questa dashboard raccoglie le mie recensioni di album musicali e le rende navigabili e condivisibili.
+    Se poi, navigando tra questi dischi, dovessi trovare qualcosa che ti incuriosisce o che non avevi mai ascoltato, allora questa piccola collezione digitale avrà fatto il suo dovere.
   </p>
   <p>
-    L'obiettivo è semplice: tenere traccia di quello che ascolto, valutarlo in modo sistematico e — perché no — suggerire qualcosa di interessante a chi capita qui.
+    Sentiti libero di esplorare. Potresti trovare un capolavoro. Potresti trovare un disco mediocre. Oppure potresti scoprire che i miei gusti sono discutibili — e anche quello va benissimo. Se al tuo disco preferito ho dato un voto basso, stai tranquillo: puoi ancora ascoltarlo.
   </p>
-  <p>Usa il menu laterale per navigare tra le sezioni:</p>
+
+  <hr class="perche-divider">
+
+  <h2>Una nota sui gusti personali</h2>
+  <p>
+    Come ogni essere umano dotato di orecchie e opinioni, ho i miei generi preferiti e i miei punti ciechi. Questo si riflette inevitabilmente nei voti: mi piacciono molto l'hip-hop, il metal (in particolare le sonorità più estreme), il pop, l'R&B moderno e tutti i generi che finiscono per "-gaze". Se la tua musica preferita non rientra in questi territori, preparati a qualche valutazione che potrebbe farti storcere il naso.
+  </p>
+
+  <hr class="perche-divider">
+
+  <h2>Una nota sull'AI</h2>
+  <p>
+    Le recensioni sono scritte da me. Qui dietro c'è tanta AI ma quasi mai nei commenti personali ai singoli dischi, che restano il cuore di questo archivio.
+  </p>
+
+  <hr class="perche-divider">
+
+  <h2>Le sezioni</h2>
+  <p>Usa il menù laterale per navigare. Troverai:</p>
   <ul>
-    <li><strong>Archivio</strong> — la classifica completa degli album recensiti</li>
-    <li><strong>Cerca</strong> — cerca un artista o un album</li>
-    <li><strong>Random!</strong> — lascia che il caso scelga per te</li>
+    <li><strong>Archivio</strong> — tutti i dischi recensiti, con filtri per genere, anno, artista e altro.</li>
+    <li><strong>Cerca</strong> — ricerca libera per artista o titolo.</li>
+    <li><strong>Random!</strong> — lascia che il caso scelga per te. Vuoi un disco a caso del 1972? Questa è la tua sezione.</li>
   </ul>
 
   <hr class="perche-divider">
 
-  <h2>Criteri di Valutazione</h2>
+  <h2>Come funziona il punteggio</h2>
   <p>
-    Gli album sono valutati in base a diversi criteri: qualità delle produzioni, dei testi, coerenza del progetto e presenza di brani memorabili. Il voto finale è uno <strong>Score</strong> da 0 a 100.
+    Ogni album ha un punteggio da 0 a 100. Non è un numero buttato lì: deriva da un sistema di valutazione personale — un'altra mia psicopatia — che tiene conto della qualità delle produzioni, dei testi, della coerenza del progetto, della presenza di brani memorabili e di altri parametri.
+  </p>
+  <p>
+    Nella scheda di ogni album troverai anche due voti da 0 a 3: uno per le produzioni, uno per la performance vocale.
   </p>
 
   <div class="tier-table-wrap">
@@ -80,5 +125,20 @@
       </tbody>
     </table>
   </div>
+
+  <div class="perche-crate-box">
+    <h2 class="perche-crate-heading">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+        <circle cx="9" cy="9" r="1" fill="currentColor"/>
+      </svg>
+      Perché "The Crate"?
+    </h2>
+    <p>
+      Il nome viene dal <em>crate digging</em> — la pratica, diffusa tra i collezionisti di vinili e i DJ, di rovistare tra le cassette di dischi usati nei negozi di seconda mano, nei mercatini o nei magazzini, alla ricerca di gemme nascoste. È un rito lento, fisico e ossessivo: non sai mai cosa troverai, ma la sensazione di tirar fuori un disco raro o dimenticato non ha paragoni. The Crate nasce dallo stesso spirito: un archivio da esplorare, dove ogni disco ha una storia e ogni scoperta è una piccola vittoria.
+    </p>
+  </div>
+
 </div>
 {% endblock %}

@@ -29,72 +29,7 @@
   <p class="result-count">{{ albums | length }} risultat{{ 'o' if albums | length == 1 else 'i' }} per "{{ query }}"</p>
   <div class="album-list">
     {% for album in albums %}
-    <article class="album-card" style="--tier-color: {{ album.score | score_color }}">
-      <div class="album-card__inner">
-        <div class="album-card__cover">
-          {% if album.cover_url %}
-          <img src="{{ album.cover_url }}" alt="Cover di {{ album.name }}" loading="lazy">
-          {% else %}
-          <div class="album-card__cover-placeholder">—</div>
-          {% endif %}
-        </div>
-
-        <div class="album-card__info">
-          <div class="album-card__heading">
-            <h3 class="album-card__title">
-              {{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}
-            </h3>
-          </div>
-
-          <p class="album-card__artist">{{ album.artist }}</p>
-
-          {% if album.genres %}
-          <div class="album-card__tags">
-            {% for g in album.genres %}
-            <span class="genre-tag">{{ g }}</span>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          {% if album.notes %}
-          <div class="album-notes">
-            <p class="album-notes__text album-notes__text--clamped">{{ album.notes }}</p>
-            <button class="album-notes__toggle" type="button">Leggi di più</button>
-          </div>
-          {% endif %}
-
-          {% if album.best_track %}
-          <p class="album-card__best-track">Miglior traccia: {{ album.best_track }}</p>
-          {% endif %}
-        </div>
-
-        <div class="album-card__score-block">
-          <div class="album-card__score-numeral">{% if album.score %}{{ album.score | int }}{% endif %}</div>
-          {% if album.tier or album.rank %}
-          <div class="album-card__score-meta">
-            {% if album.tier %}Tier {{ album.tier }}°{% endif %}{% if album.tier and album.rank %} · {% endif %}{% if album.rank %}Rank {{ album.rank }}°{% endif %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <details class="score-details">
-        <summary class="score-details__summary">Dettaglio punteggi</summary>
-        <div class="score-details__body">
-          <div class="score-metric">
-            <span class="score-metric__label">Produzione</span>
-            <span class="score-metric__value">{{ album.production }}/3.0</span>
-          </div>
-          <div class="score-metric">
-            <span class="score-metric__label">Voce / Testi</span>
-            <span class="score-metric__value">{{ album.lyrics_novelty }}/3.0</span>
-          </div>
-          {% if album.masterpiece_track_titles %}
-          <p class="score-details__tracks">Tracce top: {{ album.masterpiece_track_titles }}</p>
-          {% endif %}
-        </div>
-      </details>
-    </article>
+    {% include 'partials/album_card.html' %}
     {% endfor %}
   </div>
 
