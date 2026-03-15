@@ -18,6 +18,8 @@ class Utils:
             return "Hip-Hop/Rap"
         elif "pop" in lower_genre:
             return "Pop"
+        elif "punk" in lower_genre:
+            return "Punk"
         elif "rap metal" in lower_genre:
             return "Metal"
         elif "rap" in lower_genre or "hip-hop" in lower_genre:
@@ -34,6 +36,8 @@ class Utils:
             return "Latin"
         elif "dance" in lower_genre or "electronic" in lower_genre:
             return "Electronic"
+        elif "alternative" in lower_genre:
+            return "Alternative"
         else:
             return "Other"
 
