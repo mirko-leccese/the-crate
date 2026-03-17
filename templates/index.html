@@ -44,15 +44,54 @@
   </div>
 </div>
 
-<!-- Carousel: questo anno -->
-{% if albums_this_year %}
+<!-- Carousel: nuove uscite italiane -->
+{% if new_releases_italy %}
 <section class="shelf">
   <div class="shelf__header">
-    <h2 class="shelf__title">Nuove uscite</h2>
-    <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche oggi?</p>
+    <h2 class="shelf__title">Hot New Releases dall'Italia</h2>
+    <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche stavolta 😈?</p>
   </div>
   <div class="shelf__track">
-    {% for album in albums_this_year %}
+    {% for album in new_releases_italy %}
+    {% set tpl_id = "tpl-" ~ (album.name | replace(' ', '-') | replace('/', '-')) ~ "-" ~ (album.artist | replace(' ', '-') | replace('/', '-')) %}
+    <div class="shelf-card">
+      <div class="shelf-card__poster" data-tpl="{{ tpl_id }}">
+        {% if album.cover_url %}
+        <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
+        {% else %}
+        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
+        {% endif %}
+        <div class="shelf-card__overlay">
+          <div class="shelf-card__artist">{{ album.artist }}</div>
+          <div class="shelf-card__name">{{ album.name }}</div>
+          {% if album.score %}
+          <div class="shelf-card__score">{{ album.score | int }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if album.release_date_str or album.unique_genre %}
+      <div class="shelf-card__date">
+        {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
+      </div>
+      {% endif %}
+      <template id="{{ tpl_id }}">
+        {% include 'partials/album_card.html' %}
+      </template>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Carousel: nuove uscite internazionali -->
+{% if new_releases_world %}
+<section class="shelf">
+  <div class="shelf__header">
+    <h2 class="shelf__title">Hot New Releases dal Mondo</h2>
+    <p class="shelf__subtitle">Il mondo là fuori fa musica — ogni tanto ne vale la pena ascoltarla.</p>
+  </div>
+  <div class="shelf__track">
+    {% for album in new_releases_world %}
     {% set tpl_id = "tpl-" ~ (album.name | replace(' ', '-') | replace('/', '-')) ~ "-" ~ (album.artist | replace(' ', '-') | replace('/', '-')) %}
     <div class="shelf-card">
       <div class="shelf-card__poster" data-tpl="{{ tpl_id }}">

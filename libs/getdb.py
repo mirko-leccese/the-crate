@@ -1,3 +1,41 @@
+import html as _html
+
+
+def _rich_text_to_html(segments):
+    """Convert a Notion rich text array to a safe HTML string.
+
+    Processes all segments (not just the first), preserving:
+      - Newlines → <br>
+      - Bold annotations → <strong>
+      - Italic annotations → <em>
+      - Code annotations → <code>
+
+    Plain text content is HTML-escaped with html.escape() before any tags
+    are added, so this output is safe to render with Jinja2's | safe filter.
+    The only HTML in the result comes from our own controlled tag wrappers.
+    """
+    parts = []
+    for seg in segments:
+        # Use plain_text as fallback for non-text segment types (mentions, equations)
+        if seg.get("type") != "text":
+            parts.append(_html.escape(seg.get("plain_text", "")).replace("\n", "<br>"))
+            continue
+
+        content = seg["text"].get("content", "")
+        # Escape user-supplied text before wrapping with our own HTML tags
+        escaped = _html.escape(content).replace("\n", "<br>")
+
+        ann = seg.get("annotations", {})
+        if ann.get("code"):
+            escaped = f"<code>{escaped}</code>"
+        if ann.get("bold"):
+            escaped = f"<strong>{escaped}</strong>"
+        if ann.get("italic"):
+            escaped = f"<em>{escaped}</em>"
+
+        parts.append(escaped)
+
+    return "".join(parts) or None
 
 
 # Simula il caricamento dal database Notion
@@ -35,10 +73,10 @@ def extract_album_info(page):
         "Language": safe_get("Language", "select", "name"),
         "Genre": genres,
         "Color": safe_get("Color", "select", "name"),
-        "Notes": safe_get("Summary", "rich_text")[0]["text"]["content"] if safe_get("Summary", "rich_text") else None,
-        "Best Track": safe_get("Best Track", "rich_text")[0]["text"]["content"] if safe_get("Summary", "rich_text") else None,
+        "Duration": safe_get("Duration", "number"),
+        "Notes": _rich_text_to_html(safe_get("Summary", "rich_text") or []),
+        "Best Track": safe_get("Best Track", "rich_text")[0]["text"]["content"] if safe_get("Best Track", "rich_text") else None,
         "Picname": safe_get("Picname", "rich_text")[0]["text"]["content"] if safe_get("Picname", "rich_text") else None,
         "Release Date": safe_get("Release Date", "date", "start"),
         "Masterpiece Track Titles": safe_get("Masterpiece Track Titles", "rich_text")[0]["text"]["content"] if safe_get("Masterpiece Track Titles", "rich_text") else None
     }
-
