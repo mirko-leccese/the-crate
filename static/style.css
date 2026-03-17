@@ -622,6 +622,11 @@ details[open] .score-details__summary::before { content: '▾ '; }
   color: var(--text-primary);
 }
 
+.detail-value {
+  color: #1a3a5c;
+  font-weight: bold;
+}
+
 .score-details__tracks {
   font-size: 12px;
   color: var(--text-secondary);

@@ -14,8 +14,8 @@ try:
 except ImportError:
     pass
 
-from libs.notion import NotionClient
-from libs.getdb import extract_album_info
+import sqlite3
+
 from libs.utils import Utils
 
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +27,8 @@ app = Flask(__name__)
 # Data layer — loaded once at startup
 # ---------------------------------------------------------------------------
 
+DB_PATH = "albums.db"
+
 _album_df: pd.DataFrame = pd.DataFrame()
 _load_error: str = ""
 
@@ -35,21 +37,21 @@ def _load_data() -> None:
     global _album_df, _load_error
 
     try:
-        # Support notion-keys.json for local dev, env vars for Render
-        if Path("notion-keys.json").exists():
-            with open("notion-keys.json") as f:
-                keys = json.load(f)
-            notion_token = keys["NOTION_TOKEN"]
-            rating_db_id = keys["RATING_DATABASE_ID"]
-        else:
-            notion_token = os.environ["NOTION_TOKEN"]
-            rating_db_id = os.environ["RATING_DATABASE_ID"]
+        db_path = Path(DB_PATH)
+        if not db_path.exists():
+            raise FileNotFoundError(
+                f"Database file '{DB_PATH}' not found. "
+                "Run 'python notion_to_sqlite.py' first to migrate data from Notion."
+            )
 
-        client = NotionClient(NOTION_TOKEN=notion_token)
-        pages = client.get_db_pages(DATABASE_ID=rating_db_id)
+        conn = sqlite3.connect(db_path)
+        df = pd.read_sql_query("SELECT * FROM albums", conn)
+        conn.close()
 
-        albums_data = [extract_album_info(p) for p in pages]
-        df = pd.DataFrame(albums_data)
+        # Genre was serialized as a JSON string in SQLite — restore to list
+        df["Genre"] = df["Genre"].apply(
+            lambda x: json.loads(x) if isinstance(x, str) else []
+        )
 
         # Keep only published albums
         df = df[df["Published"] == True].reset_index(drop=True)
@@ -93,7 +95,7 @@ def _load_data() -> None:
         df["Release Year"] = pd.to_numeric(df["Release Year"], errors="coerce")
 
         _album_df = df
-        logger.info("Loaded %d albums from Notion.", len(df))
+        logger.info("Loaded %d albums from SQLite.", len(df))
 
     except Exception as exc:
         _load_error = str(exc)
@@ -151,6 +153,17 @@ def _fmt_score(value) -> str:
         return f"{f:.1f}"
     except (TypeError, ValueError):
         return "-"
+
+
+def _fmt_duration(value) -> str:
+    try:
+        mins = int(float(value))
+        if mins < 60:
+            return f"{mins} min"
+        h, m = divmod(mins, 60)
+        return f"{h}h {m} min"
+    except (TypeError, ValueError):
+        return "/"
 
 
 def _row_to_dict(row: pd.Series) -> dict:
@@ -212,6 +225,8 @@ def _row_to_dict(row: pd.Series) -> dict:
         "lyrics_novelty": _fmt_score(row.get("Lyrics/Novelty")),
         "masterpiece_tracks": row.get("Masterpiece Tracks"),
         "masterpiece_track_titles": _safe_str(row.get("Masterpiece Track Titles")),
+        "total_tracks": int(row["Total Tracks"]) if pd.notna(row.get("Total Tracks")) else None,
+        "duration": _fmt_duration(row.get("Duration")),
         "special": bool(row.get("Special", False)),
         "language": _safe_str(row.get("Language")),
         "color": _safe_str(row.get("Color")),
@@ -227,7 +242,7 @@ def index():
     df = get_data()
     if df.empty:
         return render_template("index.html", error=_load_error or "Impossibile caricare i dati.",
-                               albums_this_year=[], albums_archive=[],
+                               new_releases_italy=[], new_releases_world=[], albums_archive=[],
                                n_albums=0, n_artists=0, n_this_year=0,
                                delta_albums_added=None, delta_this_year=None,
                                added_this_year=0, pct_albums_change=None,
@@ -286,13 +301,12 @@ def index():
     ).head(5)
     top_ranking = [_row_to_dict(row) for _, row in top5_df.iterrows()]
 
-    # Carousel 1: this year, ordered by Release Date desc
-    albums_this_year_df = (
-        df[this_year_mask]
-        .sort_values("Release Date", ascending=False)
-        .head(20)
-    )
-    albums_this_year = [_row_to_dict(row) for _, row in albums_this_year_df.iterrows()]
+    # Carousel 1a/1b: this year split by language, ordered by Release Date desc
+    this_year_sorted_df = df[this_year_mask].sort_values("Release Date", ascending=False)
+    # Case-insensitive comparison to guard against casing inconsistencies in source data
+    italy_mask = this_year_sorted_df["Language"].str.lower() == "italian"
+    new_releases_italy = [_row_to_dict(row) for _, row in this_year_sorted_df[italy_mask].head(20).iterrows()]
+    new_releases_world = [_row_to_dict(row) for _, row in this_year_sorted_df[~italy_mask].head(20).iterrows()]
 
     # Carousel 2: archive (previous years), ordered by Created desc
     albums_archive_df = (
@@ -317,7 +331,8 @@ def index():
         delta_artists_added=delta_artists_added,
         pct_artists_change=pct_artists_change,
         top_ranking=top_ranking,
-        albums_this_year=albums_this_year,
+        new_releases_italy=new_releases_italy,
+        new_releases_world=new_releases_world,
         albums_archive=albums_archive,
         current_year=current_year,
         prev_year=prev_year,

@@ -32,13 +32,18 @@
 
       {% if album.notes %}
       <div class="album-notes">
-        <p class="album-notes__text album-notes__text--clamped">{{ album.notes }}</p>
+        <!-- notes contains HTML produced by _rich_text_to_html (html.escape + controlled tags only) — safe to render as HTML -->
+        <p class="album-notes__text album-notes__text--clamped">{{ album.notes | safe }}</p>
         <button class="album-notes__toggle" type="button">Leggi di più</button>
       </div>
       {% endif %}
 
       {% if album.best_track %}
       <p class="album-card__best-track">Miglior traccia: {{ album.best_track }}</p>
+      {% endif %}
+
+      {% if album.masterpiece_track_titles %}
+      <p class="album-card__best-track">Hits: {{ album.masterpiece_track_titles }}</p>
       {% endif %}
     </div>
 
@@ -53,19 +58,24 @@
   </div>
 
   <details class="score-details">
-    <summary class="score-details__summary">Dettaglio punteggi</summary>
+    <summary class="score-details__summary">Dettagli</summary>
     <div class="score-details__body">
       <div class="score-metric">
         <span class="score-metric__label">Produzione</span>
-        <span class="score-metric__value">{{ album.production }}/3.0</span>
+        <span class="score-metric__value detail-value">{{ album.production }}/3.0</span>
       </div>
       <div class="score-metric">
         <span class="score-metric__label">Voce / Testi</span>
-        <span class="score-metric__value">{{ album.lyrics_novelty }}/3.0</span>
+        <span class="score-metric__value detail-value">{{ album.lyrics_novelty }}/3.0</span>
       </div>
-      {% if album.masterpiece_track_titles %}
-      <p class="score-details__tracks">Tracce top: {{ album.masterpiece_track_titles }}</p>
-      {% endif %}
+      <div class="score-metric">
+        <span class="score-metric__label">Tracce</span>
+        <span class="score-metric__value detail-value">{{ album.total_tracks if album.total_tracks else '/' }}</span>
+      </div>
+      <div class="score-metric">
+        <span class="score-metric__label">Durata</span>
+        <span class="score-metric__value detail-value">{{ album.duration }}</span>
+      </div>
     </div>
   </details>
 </article>
