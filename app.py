@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 
 try:
     from dotenv import load_dotenv
@@ -17,6 +17,8 @@ except ImportError:
 import sqlite3
 
 from libs.utils import Utils
+from libs.deezer import get_preview_url  # used by /api/preview endpoint only
+from libs.streaming_links import spotify_search_url, apple_music_search_url
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -230,12 +232,33 @@ def _row_to_dict(row: pd.Series) -> dict:
         "special": bool(row.get("Special", False)),
         "language": _safe_str(row.get("Language")),
         "color": _safe_str(row.get("Color")),
+        # Streaming search URLs: pure string ops, no API call needed.
+        "spotify_url": spotify_search_url(
+            _safe_str(row.get("Artist")), _safe_str(row.get("Name"))
+        ),
+        "apple_music_url": apple_music_search_url(
+            _safe_str(row.get("Artist")), _safe_str(row.get("Name"))
+        ),
     }
 
 
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+@app.route("/api/preview")
+def api_preview():
+    """Lazy Deezer preview endpoint — called client-side when a card is expanded.
+    Reuses the in-memory cache in libs/deezer.py so each (artist, track) pair
+    hits the Deezer API at most once per server process lifetime.
+    """
+    artist = request.args.get("artist", "").strip()
+    track = request.args.get("track", "").strip()
+    if not artist or not track:
+        return jsonify({"error": "missing params"}), 400
+    url = get_preview_url(artist, track)
+    return jsonify({"preview_url": url})
+
 
 @app.route("/")
 def index():
