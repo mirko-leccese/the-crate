@@ -1,4 +1,7 @@
-<article class="album-card">
+<article class="album-card"
+  data-artist="{{ album.artist }}"
+  data-track="{{ album.best_track }}"
+  data-preview-fetched="false">
   <div class="album-card__inner">
     <div class="album-card__cover">
       {% if album.cover_url %}
@@ -45,6 +48,19 @@
       {% if album.masterpiece_track_titles %}
       <p class="album-card__best-track">Hits: {{ album.masterpiece_track_titles }}</p>
       {% endif %}
+
+      <div class="preview-block">
+        <!-- Audio player injected lazily by fetchPreview() when the card enters the viewport -->
+        <div class="preview-audio-container" style="display:none"></div>
+        <div class="streaming-links">
+          <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
+            <img src="/static/spotify-icon.png" alt="Spotify" height="24">
+          </a>
+          <a href="{{ album.apple_music_url }}" target="_blank" rel="noopener noreferrer">
+            <img src="/static/apple-music.png" alt="Apple Music" height="24">
+          </a>
+        </div>
+      </div>
     </div>
 
     <div class="album-card__score-block">

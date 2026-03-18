@@ -88,6 +88,72 @@
     overlay.addEventListener('click', closeSidebar);
   </script>
 
+  <script>
+    // fetchPreview — fetch and inject a 30s Deezer audio preview into a card.
+    // Called when the card enters the viewport (see IntersectionObserver below).
+    // data-preview-fetched guards against repeat calls on re-enter or re-open.
+    function fetchPreview(card) {
+      if (!card || card.dataset.previewFetched === 'true') return;
+      card.dataset.previewFetched = 'true';
+
+      const artist = card.dataset.artist;
+      const track  = card.dataset.track;
+      if (!artist || !track) return;
+
+      fetch('/api/preview?artist=' + encodeURIComponent(artist) + '&track=' + encodeURIComponent(track))
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.preview_url) return;
+          const container = card.querySelector('.preview-audio-container');
+          if (!container) return;
+          const audio = document.createElement('audio');
+          audio.controls = true;
+          audio.preload  = 'none';
+          audio.src      = data.preview_url;
+          container.appendChild(audio);
+          container.style.display = '';
+        })
+        .catch(function() {});  // silent failure — a missing preview never errors visibly
+    }
+
+    // Trigger fetchPreview when a card enters the viewport.
+    //   - Top / Search / Random pages: inline cards trigger as user scrolls.
+    //   - Home page: the cloned card triggers when #detail-body becomes visible
+    //     (IntersectionObserver fires once the parent transitions to display:block).
+    var _previewObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        _previewObserver.unobserve(entry.target);  // one-shot per card
+        fetchPreview(entry.target);
+      });
+    }, { threshold: 0.1 });
+
+    // Observe cards already in the DOM at page load (Top / Search / Random).
+    document.querySelectorAll('.album-card').forEach(function(card) {
+      _previewObserver.observe(card);
+    });
+
+    // Observe cards added dynamically to #detail-body (Home page: openDetail()).
+    var _detailBody = document.getElementById('detail-body');
+    if (_detailBody) {
+      new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType !== 1) return;
+            if (node.classList && node.classList.contains('album-card')) {
+              _previewObserver.observe(node);
+            }
+            if (node.querySelectorAll) {
+              node.querySelectorAll('.album-card').forEach(function(c) {
+                _previewObserver.observe(c);
+              });
+            }
+          });
+        });
+      }).observe(_detailBody, { childList: true, subtree: true });
+    }
+  </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,0 +1,12 @@
+<!-- TODO: Replace with the official Apple Music logo from Apple's Identity Guidelines:
+     https://www.apple.com/contact/identity-guidelines/ -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Apple Music">
+  <defs>
+    <linearGradient id="am-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FC5C7D"/>
+      <stop offset="100%" stop-color="#6A3093"/>
+    </linearGradient>
+  </defs>
+  <rect width="24" height="24" rx="5.5" fill="url(#am-grad)"/>
+  <path fill="#fff" d="M16 7.2v6.6c0 .9-.7 1.6-1.6 1.6-.9 0-1.6-.7-1.6-1.6s.7-1.6 1.6-1.6c.2 0 .4 0 .6.1V8.9l-4 1v5.5c0 .9-.7 1.6-1.6 1.6-.9 0-1.6-.7-1.6-1.6s.7-1.6 1.6-1.6c.2 0 .4 0 .6.1V8l5.4-1.4.6.6z"/>
+</svg>
