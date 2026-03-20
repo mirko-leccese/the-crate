@@ -53,9 +53,8 @@
   </div>
   <div class="shelf__track">
     {% for album in new_releases_italy %}
-    {% set tpl_id = "tpl-" ~ (album.name | replace(' ', '-') | replace('/', '-')) ~ "-" ~ (album.artist | replace(' ', '-') | replace('/', '-')) %}
     <div class="shelf-card">
-      <div class="shelf-card__poster" data-tpl="{{ tpl_id }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
@@ -68,15 +67,12 @@
           <div class="shelf-card__score">{{ album.score | int }}</div>
           {% endif %}
         </div>
-      </div>
+      </a>
       {% if album.release_date_str or album.unique_genre %}
       <div class="shelf-card__date">
         {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
       </div>
       {% endif %}
-      <template id="{{ tpl_id }}">
-        {% include 'partials/album_card.html' %}
-      </template>
     </div>
     {% endfor %}
   </div>
@@ -92,9 +88,8 @@
   </div>
   <div class="shelf__track">
     {% for album in new_releases_world %}
-    {% set tpl_id = "tpl-" ~ (album.name | replace(' ', '-') | replace('/', '-')) ~ "-" ~ (album.artist | replace(' ', '-') | replace('/', '-')) %}
     <div class="shelf-card">
-      <div class="shelf-card__poster" data-tpl="{{ tpl_id }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
@@ -107,15 +102,12 @@
           <div class="shelf-card__score">{{ album.score | int }}</div>
           {% endif %}
         </div>
-      </div>
+      </a>
       {% if album.release_date_str or album.unique_genre %}
       <div class="shelf-card__date">
         {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
       </div>
       {% endif %}
-      <template id="{{ tpl_id }}">
-        {% include 'partials/album_card.html' %}
-      </template>
     </div>
     {% endfor %}
   </div>
@@ -131,9 +123,8 @@
   </div>
   <div class="shelf__track">
     {% for album in albums_archive %}
-    {% set tpl_id = "tpl-" ~ (album.name | replace(' ', '-') | replace('/', '-')) ~ "-" ~ (album.artist | replace(' ', '-') | replace('/', '-')) %}
     <div class="shelf-card">
-      <div class="shelf-card__poster" data-tpl="{{ tpl_id }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
@@ -146,15 +137,12 @@
           <div class="shelf-card__score">{{ album.score | int }}</div>
           {% endif %}
         </div>
-      </div>
+      </a>
       {% if album.release_date_str or album.unique_genre %}
       <div class="shelf-card__date">
         {% if album.release_date_str %}{{ album.release_date_str }}{% endif %}{% if album.unique_genre %} <span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
       </div>
       {% endif %}
-      <template id="{{ tpl_id }}">
-        {% include 'partials/album_card.html' %}
-      </template>
     </div>
     {% endfor %}
   </div>
@@ -209,75 +197,4 @@
 {% endif %}
 </div>{# /home-content #}
 
-<!-- Album detail full-page view -->
-<div id="album-detail" style="display:none;" aria-label="Dettaglio album">
-  <div class="detail-topbar">
-    <button class="detail-back" id="detail-back" tabindex="0" aria-label="Indietro">
-      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-      Indietro
-    </button>
-  </div>
-  <div id="detail-body"></div>
-</div>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-  const detail = document.getElementById('album-detail');
-  const detailBody = document.getElementById('detail-body');
-  const homeContent = document.getElementById('home-content');
-  let savedScrollY = 0;
-
-  function openDetail(tplId) {
-    const tpl = document.getElementById(tplId);
-    if (!tpl) return;
-    detailBody.innerHTML = '';
-    detailBody.appendChild(tpl.content.cloneNode(true));
-    detailBody.querySelectorAll('.album-notes__toggle').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const textEl = btn.previousElementSibling;
-        const clamped = textEl.classList.toggle('album-notes__text--clamped');
-        btn.textContent = clamped ? 'Leggi di più' : 'Mostra meno';
-      });
-    });
-    savedScrollY = window.scrollY;
-    homeContent.style.opacity = '0';
-    homeContent.style.transition = 'opacity 0.2s ease';
-    homeContent.addEventListener('transitionend', () => {
-      homeContent.style.display = 'none';
-      detail.style.display = 'block';
-      detail.style.opacity = '0';
-      requestAnimationFrame(() => {
-        detail.style.transition = 'opacity 0.2s ease';
-        detail.style.opacity = '1';
-      });
-      window.scrollTo(0, 0);
-    }, { once: true });
-  }
-
-  function closeDetail() {
-    detail.style.opacity = '0';
-    detail.addEventListener('transitionend', () => {
-      detail.style.display = 'none';
-      homeContent.style.display = '';
-      homeContent.style.transition = 'opacity 0.2s ease';
-      homeContent.style.opacity = '0';
-      requestAnimationFrame(() => { homeContent.style.opacity = '1'; });
-      window.scrollTo(0, savedScrollY);
-    }, { once: true });
-  }
-
-  document.querySelectorAll('.shelf-card__poster[data-tpl]').forEach(poster => {
-    poster.addEventListener('click', () => openDetail(poster.dataset.tpl));
-  });
-
-  const backBtn = document.getElementById('detail-back');
-  backBtn.addEventListener('click', closeDetail);
-  backBtn.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeDetail(); }
-  });
-</script>
 {% endblock %}

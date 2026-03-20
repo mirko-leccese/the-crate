@@ -17,8 +17,15 @@ except ImportError:
 import sqlite3
 
 from libs.utils import Utils
-from libs.deezer import get_preview_url  # used by /api/preview endpoint only
 from libs.streaming_links import spotify_search_url, apple_music_search_url
+from libs.stats import (
+    get_summary_stats,
+    get_tier_distribution,
+    get_albums_per_year,
+    get_genre_breakdown,
+    get_artist_spotlight,
+    get_subgenre_scatter,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,9 +37,16 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 
 DB_PATH = "albums.db"
+CONF_PATH = Path("conf.json")
 
 _album_df: pd.DataFrame = pd.DataFrame()
 _load_error: str = ""
+
+# Load other_scores config once at startup
+_other_scores: list = []
+if CONF_PATH.exists():
+    with open(CONF_PATH) as _f:
+        _other_scores = json.load(_f).get("other_scores", [])
 
 
 def _load_data() -> None:
@@ -68,8 +82,8 @@ def _load_data() -> None:
 
         df["Rank"] = df.index + 1
 
-        tier_bins = [0, 49, 59, 69, 74, 84, 89, 95, 100]
-        tier_labels = [8, 7, 6, 5, 4, 3, 2, 1]
+        tier_bins = Utils.TIER_BINS
+        tier_labels = Utils.TIER_LABELS
         df["Tier"] = pd.cut(
             df["Score"], bins=tier_bins, labels=tier_labels,
             right=True, include_lowest=True,
@@ -245,20 +259,6 @@ def _row_to_dict(row: pd.Series) -> dict:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-
-@app.route("/api/preview")
-def api_preview():
-    """Lazy Deezer preview endpoint — called client-side when a card is expanded.
-    Reuses the in-memory cache in libs/deezer.py so each (artist, track) pair
-    hits the Deezer API at most once per server process lifetime.
-    """
-    artist = request.args.get("artist", "").strip()
-    track = request.args.get("track", "").strip()
-    if not artist or not track:
-        return jsonify({"error": "missing params"}), 400
-    url = get_preview_url(artist, track)
-    return jsonify({"preview_url": url})
-
 
 @app.route("/")
 def index():
@@ -550,6 +550,66 @@ def random_albums():
         global_score_min=global_score_min if not df.empty else 0,
         global_score_max=global_score_max if not df.empty else 100,
         generated=generated,
+    )
+
+
+@app.route("/album/<int:album_id>")
+def album_detail(album_id):
+    df = get_data()
+    if df.empty:
+        return render_template("album_detail.html", error=_load_error or "Impossibile caricare i dati.",
+                               album=None, other_scores=[]), 404
+    matches = df[df["Rank"] == album_id]
+    if matches.empty:
+        return render_template("album_detail.html", error="Album non trovato.",
+                               album=None, other_scores=[]), 404
+    row = matches.iloc[0]
+    album = _row_to_dict(row)
+    # Attach other_scores values so the template can read them by column name
+    for score_conf in _other_scores:
+        col = score_conf["name"].lower().replace(" ", "_")
+        raw = row.get(col)
+        try:
+            album[col] = float(raw) if pd.notna(raw) else None
+        except (TypeError, ValueError):
+            album[col] = None
+    return render_template("album_detail.html", album=album, error=None, other_scores=_other_scores)
+
+
+@app.route("/stats")
+def stats():
+    df = get_data()
+
+    # Filter options always from the full unfiltered DataFrame
+    all_languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+    all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+
+    # Active filter values from query params
+    selected_language = request.args.get("language", "")
+    try:
+        selected_year = int(request.args.get("year", ""))
+    except (ValueError, TypeError):
+        selected_year = None
+
+    # Slice the DataFrame before passing to stat functions
+    filtered = df
+    if selected_language:
+        filtered = filtered[filtered["Language"] == selected_language]
+    if selected_year is not None:
+        filtered = filtered[filtered["Release Year"] == selected_year]
+
+    return render_template(
+        "stats.html",
+        summary=get_summary_stats(filtered),
+        tier_distribution=get_tier_distribution(filtered),
+        albums_per_year=get_albums_per_year(filtered),
+        genre_breakdown=get_genre_breakdown(filtered),
+        artist_spotlight=get_artist_spotlight(filtered),
+        subgenre_scatter=get_subgenre_scatter(filtered),
+        all_languages=all_languages,
+        all_years=all_years,
+        selected_language=selected_language,
+        selected_year=selected_year,
     )
 
 

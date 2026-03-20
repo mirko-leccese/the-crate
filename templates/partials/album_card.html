@@ -1,7 +1,6 @@
 <article class="album-card"
-  data-artist="{{ album.artist }}"
-  data-track="{{ album.best_track }}"
-  data-preview-fetched="false">
+  data-preview-fetched="false"
+  {% if card_link_url is defined and card_link_url %}data-detail-url="{{ card_link_url }}"{% endif %}>
   <div class="album-card__inner">
     <div class="album-card__cover">
       {% if album.cover_url %}
@@ -37,7 +36,11 @@
       <div class="album-notes">
         <!-- notes contains HTML produced by _rich_text_to_html (html.escape + controlled tags only) — safe to render as HTML -->
         <p class="album-notes__text album-notes__text--clamped">{{ album.notes | safe }}</p>
+        {% if card_link_url is defined and card_link_url %}
+        <a href="{{ card_link_url }}" class="album-notes__toggle">Leggi di più</a>
+        {% else %}
         <button class="album-notes__toggle" type="button">Leggi di più</button>
+        {% endif %}
       </div>
       {% endif %}
 
@@ -51,7 +54,10 @@
 
       <div class="preview-block">
         <!-- Audio player injected lazily by fetchPreview() when the card enters the viewport -->
-        <div class="preview-audio-container" style="display:none"></div>
+        <div class="preview-audio-container" style="display:none"
+          data-deezer-artist="{{ album.artist }}"
+          data-deezer-album="{{ album.name }}"
+          data-deezer-best-track="{{ album.best_track }}"></div>
         <div class="streaming-links">
           <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
             <img src="/static/spotify-icon.png" alt="Spotify" height="24">
@@ -73,6 +79,7 @@
     </div>
   </div>
 
+  {% if show_details is not defined or show_details %}
   <details class="score-details">
     <summary class="score-details__summary">Dettagli</summary>
     <div class="score-details__body">
@@ -94,4 +101,5 @@
       </div>
     </div>
   </details>
+  {% endif %}
 </article>

@@ -54,6 +54,13 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('stats') }}"
+           class="sidebar__link {% if request.endpoint == 'stats' %}sidebar__link--active{% endif %}">
+          <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="9" width="3" height="6" rx="0.5"/><rect x="6.5" y="5" width="3" height="10" rx="0.5"/><rect x="11" y="1" width="3" height="14" rx="0.5"/></svg>
+          Stats
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('perche') }}"
            class="sidebar__link {% if request.endpoint == 'perche' %}sidebar__link--active{% endif %}">
           <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><line x1="8" y1="7.5" x2="8" y2="11"/><circle cx="8" cy="5.5" r="0.6" fill="currentColor" stroke="none"/></svg>
@@ -89,69 +96,90 @@
   </script>
 
   <script>
-    // fetchPreview — fetch and inject a 30s Deezer audio preview into a card.
-    // Called when the card enters the viewport (see IntersectionObserver below).
-    // data-preview-fetched guards against repeat calls on re-enter or re-open.
+    // _dzJsonp — lightweight JSONP loader for Deezer API calls.
+    // Deezer does not support CORS for browser requests, so JSONP is required.
+    // Each call gets a unique global callback name to allow multiple concurrent
+    // requests (e.g. multiple cards visible at once on Archivio).
+    function _dzJsonp(url, cb) {
+      var name = 'dz_' + Math.random().toString(36).slice(2, 10);
+      var script = document.createElement('script');
+      var timer = setTimeout(function() {
+        delete window[name];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        cb(null);
+      }, 6000);
+      window[name] = function(data) {
+        clearTimeout(timer);
+        delete window[name];
+        if (script.parentNode) script.parentNode.removeChild(script);
+        cb(data);
+      };
+      script.src = url + '&callback=' + name;
+      document.head.appendChild(script);
+    }
+
+    // fetchPreview — client-side Deezer album search via JSONP.
+    // Step 1: search for the album to get its Deezer album ID.
+    // Step 2: fetch that album's track list and take the first track's preview URL.
+    // Called when the card enters the viewport (IntersectionObserver below).
+    // data-preview-fetched guards against repeat calls on re-enter.
     function fetchPreview(card) {
       if (!card || card.dataset.previewFetched === 'true') return;
       card.dataset.previewFetched = 'true';
 
-      const artist = card.dataset.artist;
-      const track  = card.dataset.track;
-      if (!artist || !track) return;
+      var container = card.querySelector('.preview-audio-container');
+      if (!container) return;
 
-      fetch('/api/preview?artist=' + encodeURIComponent(artist) + '&track=' + encodeURIComponent(track))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (!data.preview_url) return;
-          const container = card.querySelector('.preview-audio-container');
-          if (!container) return;
-          const audio = document.createElement('audio');
-          audio.controls = true;
-          audio.preload  = 'none';
-          audio.src      = data.preview_url;
-          container.appendChild(audio);
-          container.style.display = '';
-        })
-        .catch(function() {});  // silent failure — a missing preview never errors visibly
+      var artist = container.dataset.deezerArtist;
+      var album  = container.dataset.deezerAlbum;
+      if (!artist || !album) return;
+
+      var q = 'artist:"' + artist + '" album:"' + album + '"';
+      _dzJsonp(
+        'https://api.deezer.com/search/album?q=' + encodeURIComponent(q) + '&limit=1&output=jsonp',
+        function(res) {
+          if (!res || !res.data || !res.data[0]) return;
+          var albumId = res.data[0].id;
+          _dzJsonp(
+            'https://api.deezer.com/album/' + albumId + '/tracks?output=jsonp',
+            function(tracks) {
+              if (!tracks || !tracks.data || !tracks.data[0]) return;
+              var bestTrack = (container.dataset.deezerBestTrack || '').toLowerCase().trim();
+              var matched = null;
+              if (bestTrack) {
+                // 1. Case-insensitive exact match
+                matched = tracks.data.find(function(t) { return t.title.toLowerCase().trim() === bestTrack; });
+                // 2. Case-insensitive includes fallback
+                if (!matched) {
+                  matched = tracks.data.find(function(t) { return t.title.toLowerCase().includes(bestTrack) || bestTrack.includes(t.title.toLowerCase().trim()); });
+                }
+              }
+              var previewUrl = matched ? matched.preview : tracks.data[0].preview;
+              if (!previewUrl) return;
+              var audio = document.createElement('audio');
+              audio.controls = true;
+              audio.preload  = 'none';
+              audio.src      = previewUrl;
+              container.appendChild(audio);
+              container.style.display = '';
+            }
+          );
+        }
+      );
     }
 
-    // Trigger fetchPreview when a card enters the viewport.
-    //   - Top / Search / Random pages: inline cards trigger as user scrolls.
-    //   - Home page: the cloned card triggers when #detail-body becomes visible
-    //     (IntersectionObserver fires once the parent transitions to display:block).
+    // Trigger fetchPreview lazily when a card scrolls into view (one-shot per card).
     var _previewObserver = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
         if (!entry.isIntersecting) return;
-        _previewObserver.unobserve(entry.target);  // one-shot per card
+        _previewObserver.unobserve(entry.target);
         fetchPreview(entry.target);
       });
     }, { threshold: 0.1 });
 
-    // Observe cards already in the DOM at page load (Top / Search / Random).
     document.querySelectorAll('.album-card').forEach(function(card) {
       _previewObserver.observe(card);
     });
-
-    // Observe cards added dynamically to #detail-body (Home page: openDetail()).
-    var _detailBody = document.getElementById('detail-body');
-    if (_detailBody) {
-      new MutationObserver(function(mutations) {
-        mutations.forEach(function(mutation) {
-          mutation.addedNodes.forEach(function(node) {
-            if (node.nodeType !== 1) return;
-            if (node.classList && node.classList.contains('album-card')) {
-              _previewObserver.observe(node);
-            }
-            if (node.querySelectorAll) {
-              node.querySelectorAll('.album-card').forEach(function(c) {
-                _previewObserver.observe(c);
-              });
-            }
-          });
-        });
-      }).observe(_detailBody, { childList: true, subtree: true });
-    }
   </script>
 
   {% block scripts %}{% endblock %}

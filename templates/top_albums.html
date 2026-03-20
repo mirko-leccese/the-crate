@@ -117,7 +117,9 @@
 <div class="album-list">
   {% for album in albums %}
   {% set pos = loop.index %}
+  {% with show_details=false, card_link_url=url_for('album_detail', album_id=album.rank) %}
   {% include 'partials/album_card.html' %}
+  {% endwith %}
   {% else %}
   <p class="empty-state">Nessun album corrisponde ai filtri selezionati.</p>
   {% endfor %}
@@ -137,12 +139,11 @@
     filterToggleLabel.textContent = hidden ? 'Filtri' : 'Nascondi filtri';
   });
 
-  // Expand/collapse album notes inline
-  document.querySelectorAll('.album-notes__toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const textEl = btn.previousElementSibling;
-      const clamped = textEl.classList.toggle('album-notes__text--clamped');
-      btn.textContent = clamped ? 'Leggi di più' : 'Mostra meno';
+  // Navigate to album detail page on card click (skip interactive elements)
+  document.querySelectorAll('.album-card[data-detail-url]').forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('a, button, audio, input, select')) return;
+      window.location.href = card.dataset.detailUrl;
     });
   });
 </script>

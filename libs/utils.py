@@ -9,6 +9,24 @@ import requests
 from PIL import Image
 
 class Utils:
+    # Tier system — bins and labels must stay in sync with app.py _load_data()
+    TIER_BINS = [0, 49, 59, 69, 74, 84, 89, 95, 100]
+    TIER_LABELS = [8, 7, 6, 5, 4, 3, 2, 1]
+
+    @staticmethod
+    def tier_score_range(tier: int) -> str:
+        """Returns the score interval string for a given tier number, e.g. '96–100'."""
+        try:
+            idx = Utils.TIER_LABELS.index(tier)
+        except ValueError:
+            return "?"
+        lo = Utils.TIER_BINS[idx]
+        hi = Utils.TIER_BINS[idx + 1]
+        # First bin uses include_lowest, so all integer scores ≥ lo are included.
+        # Subsequent bins are (lo, hi], so the first valid integer score is lo+1.
+        lo_display = lo if idx == 0 else lo + 1
+        return f"{lo_display}–{hi}"
+
     @staticmethod
     def map_genres(genre: str):
         lower_genre = str(genre).lower()
