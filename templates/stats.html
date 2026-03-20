@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}Stats — The Crate{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Stats</h1>
+  <p class="page-subtitle">Una panoramica dell'archivio</p>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-panel" id="filterPanel">
+  <button class="filter-toggle" id="filterToggle" type="button">
+    <svg class="filter-toggle__icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span id="filterToggleLabel">Filtri</span>
+  </button>
+
+  <form id="filterForm" class="filter-form filter-form--hidden" method="get" action="{{ url_for('stats') }}">
+    <div class="filter-row" style="gap: 20px; margin-bottom: 20px;">
+      <div class="filter-select-wrap">
+        <label class="filter-label" for="languageSelect">Lingua</label>
+        <select name="language" id="languageSelect" class="filter-select">
+          <option value="">Tutte le lingue</option>
+          {% for lang in all_languages %}
+          <option value="{{ lang }}" {% if lang == selected_language %}selected{% endif %}>{{ lang }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-select-wrap">
+        <label class="filter-label" for="yearSelect">Anno</label>
+        <select name="year" id="yearSelect" class="filter-select">
+          <option value="">Tutti gli anni</option>
+          {% for y in all_years %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="filter-actions">
+      <button type="submit" class="btn btn--primary">Applica filtri</button>
+      <a href="{{ url_for('stats') }}" class="btn btn--ghost">Azzera</a>
+    </div>
+  </form>
+</div>
+
+<!-- 1. Summary bar -->
+<div class="stat-cards stats-summary">
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ summary.n_albums }}</div>
+    <div class="stat-card__label">Album totali</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ summary.n_this_year }}</div>
+    <div class="stat-card__label">Album quest'anno</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ summary.n_artists }}</div>
+    <div class="stat-card__label">Artisti diversi</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ summary.n_genres }}</div>
+    <div class="stat-card__label">Generi</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ summary.avg_score if summary.avg_score is not none else '—' }}</div>
+    <div class="stat-card__label">Voto medio</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--best">{{ summary.best_album_name or '—' }}</div>
+    <div class="stat-card__sub">{{ summary.best_album_artist }}</div>
+    <div class="stat-card__label">Album migliore</div>
+  </div>
+
+</div>
+
+<!-- 2. Score distribution by Tier -->
+<section class="stats-section">
+  <h2 class="stats-section__title">Distribuzione per Tier</h2>
+  {% if tier_distribution %}
+  <div class="stats-hbar-chart">
+    {% for item in tier_distribution %}
+    <div class="stats-hbar-row">
+      <span class="stats-hbar-label">{{ item.label }}</span>
+      <div class="stats-hbar-track">
+        <div class="stats-hbar-fill" style="width: {{ item.pct }}%"></div>
+      </div>
+      <span class="stats-hbar-count">{{ item.count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">Nessun dato disponibile.</p>
+  {% endif %}
+</section>
+
+<!-- 3. Reviews over time -->
+<section class="stats-section">
+  <h2 class="stats-section__title">Album per anno</h2>
+  {% if albums_per_year %}
+  <div class="stats-year-chart">
+    {% for item in albums_per_year %}
+    <div class="stats-year-col">
+      <span class="stats-year-count">{{ item.count }}</span>
+      <div class="stats-year-bar-container">
+        <div class="stats-year-bar" style="height: {{ item.pct }}%"></div>
+      </div>
+      <span class="stats-year-label">{{ item.year }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">Nessun dato disponibile.</p>
+  {% endif %}
+</section>
+
+<!-- 4. Top Genres -->
+<section class="stats-section">
+  <h2 class="stats-section__title">Top Genres</h2>
+  <div class="stats-two-col">
+
+    <div>
+      <p class="stats-panel-label">Per numero di album</p>
+      {% if genre_breakdown.top_by_count %}
+      <ol class="stats-ranked-list">
+        {% for item in genre_breakdown.top_by_count %}
+        <li class="stats-ranked-item">
+          <span class="stats-ranked-item__pos">{{ loop.index }}</span>
+          <span class="stats-ranked-item__name">{{ item.genre }}</span>
+          <span class="stats-ranked-item__value">{{ item.count }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty-state">Nessun dato disponibile.</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <p class="stats-panel-label">Per voto medio <span class="stats-panel-label__note">(min. 3 album)</span></p>
+      {% if genre_breakdown.top_by_avg_score %}
+      <ol class="stats-ranked-list">
+        {% for item in genre_breakdown.top_by_avg_score %}
+        <li class="stats-ranked-item">
+          <span class="stats-ranked-item__pos">{{ loop.index }}</span>
+          <span class="stats-ranked-item__name">{{ item.genre }}</span>
+          <span class="stats-ranked-item__value">{{ item.avg_score }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty-state">Nessun dato disponibile.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+
+<!-- 5. Subgenre scatter plot -->
+<section class="stats-section">
+  <h2 class="stats-section__title">Mappa dei Sottogeneri</h2>
+  {% if subgenre_scatter %}
+  <div id="subgenre-scatter"></div>
+  <script type="application/json" id="subgenre-data">{{ subgenre_scatter | tojson }}</script>
+  {% else %}
+  <p class="empty-state">Nessun dato disponibile.</p>
+  {% endif %}
+</section>
+
+<!-- 6. Artist spotlight -->
+<section class="stats-section">
+  <h2 class="stats-section__title">Artisti</h2>
+  <div class="stats-two-col">
+
+    <div>
+      <p class="stats-panel-label">Più recensiti</p>
+      {% if artist_spotlight.most_reviewed %}
+      <ol class="stats-ranked-list">
+        {% for item in artist_spotlight.most_reviewed %}
+        <li class="stats-ranked-item">
+          <span class="stats-ranked-item__pos">{{ loop.index }}</span>
+          <span class="stats-ranked-item__name">{{ item.artist }}</span>
+          <span class="stats-ranked-item__value">{{ item.count }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty-state">Nessun dato disponibile.</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <p class="stats-panel-label">Meglio votati <span class="stats-panel-label__note">(min. 2 album)</span></p>
+      {% if artist_spotlight.highest_rated %}
+      <ol class="stats-ranked-list">
+        {% for item in artist_spotlight.highest_rated %}
+        <li class="stats-ranked-item">
+          <span class="stats-ranked-item__pos">{{ loop.index }}</span>
+          <span class="stats-ranked-item__name">{{ item.artist }}</span>
+          <span class="stats-ranked-item__value">{{ item.avg_score }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty-state">Nessun dato disponibile.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  /* ----- Filter panel toggle ----- */
+  var filterToggle = document.getElementById('filterToggle');
+  var filterForm   = document.getElementById('filterForm');
+  var filterLabel  = document.getElementById('filterToggleLabel');
+  filterToggle.addEventListener('click', function () {
+    var hidden = filterForm.classList.toggle('filter-form--hidden');
+    filterLabel.textContent = hidden ? 'Filtri' : 'Nascondi filtri';
+  });
+</script>
+
+{% if subgenre_scatter %}
+<script>
+(function () {
+  var raw = JSON.parse(document.getElementById('subgenre-data').textContent);
+  if (!raw || raw.length === 0) return;
+
+  var wrap = document.getElementById('subgenre-scatter');
+
+  /* ---- Layout ---- */
+  var ML = 44, MR = 24, MT = 20, MB = 44;
+  var VW = 720, VH = 400;
+  var PW = VW - ML - MR;
+  var PH = VH - MT - MB;
+
+  /* ---- Scales ---- */
+  var allScores = raw.map(function (d) { return d.avg_score; });
+  var allCounts = raw.map(function (d) { return d.count; });
+  var sMin = Math.min.apply(null, allScores);
+  var sMax = Math.max.apply(null, allScores);
+  var cMax = Math.max.apply(null, allCounts);
+
+  var padS = Math.max((sMax - sMin) * 0.06, 1);
+  var xLo = sMin - padS, xHi = sMax + padS;
+  var yHi = cMax + 1;
+
+  function xs(s) { return ML + (s - xLo) / (xHi - xLo) * PW; }
+  function ys(c) { return MT + PH * (1 - c / yHi); }
+
+  /* ---- SVG helpers ---- */
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + VW + ' ' + VH);
+  svg.style.cssText = 'width:100%;height:auto;display:block;';
+
+  function el(tag, attrs, text) {
+    var node = document.createElementNS(NS, tag);
+    for (var k in attrs) node.setAttribute(k, attrs[k]);
+    if (text !== undefined) node.textContent = String(text);
+    return node;
+  }
+
+  /* ---- Grid & axes ---- */
+  /* Axis lines */
+  svg.appendChild(el('line', { x1: ML, y1: MT + PH, x2: ML + PW, y2: MT + PH, stroke: '#e6e6e3', 'stroke-width': 1 }));
+  svg.appendChild(el('line', { x1: ML, y1: MT,      x2: ML,       y2: MT + PH, stroke: '#e6e6e3', 'stroke-width': 1 }));
+
+  /* X ticks */
+  var xRange = xHi - xLo;
+  var xStep  = xRange > 20 ? 10 : xRange > 10 ? 5 : 2;
+  var xStart = Math.ceil(xLo / xStep) * xStep;
+  for (var xv = xStart; xv <= Math.floor(xHi); xv += xStep) {
+    var xp = xs(xv);
+    svg.appendChild(el('line', { x1: xp, y1: MT, x2: xp, y2: MT + PH, stroke: '#f1f1ef', 'stroke-width': 1 }));
+    svg.appendChild(el('line', { x1: xp, y1: MT + PH, x2: xp, y2: MT + PH + 5, stroke: '#cccccc', 'stroke-width': 1 }));
+    svg.appendChild(el('text', { x: xp, y: MT + PH + 18, 'text-anchor': 'middle', 'font-size': 11, fill: '#999999', 'font-family': 'Inter,sans-serif' }, xv));
+  }
+
+  /* Y ticks */
+  var yStep = cMax > 10 ? Math.ceil(cMax / 7) : 1;
+  for (var yv = yStep; yv <= yHi - 1; yv += yStep) {
+    var yp = ys(yv);
+    svg.appendChild(el('line', { x1: ML, y1: yp, x2: ML + PW, y2: yp, stroke: '#f1f1ef', 'stroke-width': 1 }));
+    svg.appendChild(el('line', { x1: ML - 5, y1: yp, x2: ML, y2: yp, stroke: '#cccccc', 'stroke-width': 1 }));
+    svg.appendChild(el('text', { x: ML - 8, y: yp + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#999999', 'font-family': 'Inter,sans-serif' }, yv));
+  }
+
+  /* Axis labels */
+  svg.appendChild(el('text', {
+    x: ML + PW / 2, y: VH - 6,
+    'text-anchor': 'middle', 'font-size': 11, fill: '#666666', 'font-family': 'Inter,sans-serif'
+  }, 'Voto medio'));
+  svg.appendChild(el('text', {
+    x: 10, y: MT + PH / 2,
+    'text-anchor': 'middle', 'font-size': 11, fill: '#666666', 'font-family': 'Inter,sans-serif',
+    transform: 'rotate(-90 10 ' + (MT + PH / 2) + ')'
+  }, 'Album'));
+
+  /* ---- Tooltip ---- */
+  var tip = document.createElement('div');
+  tip.style.cssText = [
+    'position:fixed',
+    'background:#1c1c1e',
+    'color:#f5f5f5',
+    'font-size:12px',
+    'line-height:1.6',
+    'padding:8px 12px',
+    'border-radius:8px',
+    'pointer-events:none',
+    'display:none',
+    'z-index:9999',
+    'box-shadow:0 4px 12px rgba(0,0,0,.25)',
+    'font-family:Inter,sans-serif'
+  ].join(';');
+  document.body.appendChild(tip);
+
+  function showTip(e, d) {
+    tip.innerHTML = '<strong>' + d.name + '</strong><br>Voto medio: ' + d.avg_score + '<br>Album: ' + d.count;
+    tip.style.display = 'block';
+    moveTip(e);
+  }
+  function moveTip(e) {
+    var x = e.clientX + 14, y = e.clientY - 8;
+    if (x + 170 > window.innerWidth) x = e.clientX - 174;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+  function hideTip() { tip.style.display = 'none'; }
+
+  /* ---- Dots + static labels with overlap avoidance ---- */
+  var placed = [];   /* [{x1,y1,x2,y2}] of already-placed label bounding boxes */
+  var CW = 6.3;      /* approximate char width at font-size 10.5 */
+  var LH = 13;
+
+  function overlaps(a, b) {
+    return !(a.x2 < b.x1 || b.x2 < a.x1 || a.y2 < b.y1 || b.y2 < a.y1);
+  }
+
+  raw.forEach(function (d) {
+    var cx = xs(d.avg_score);
+    var cy = ys(d.count);
+
+    /* dot */
+    var dot = el('circle', { cx: cx, cy: cy, r: 5, fill: '#4a7fc1', opacity: 0.85 });
+    dot.style.cursor = 'pointer';
+    dot.addEventListener('mouseenter', function (e) { showTip(e, d); });
+    dot.addEventListener('mousemove', moveTip);
+    dot.addEventListener('mouseleave', hideTip);
+    svg.appendChild(dot);
+
+    /* static label — try four positions, pick first non-overlapping */
+    var lW  = d.name.length * CW;
+    var gap = 7;
+    var candidates = [
+      { lx: cx - lW / 2, ly: cy - gap },          /* above  */
+      { lx: cx + gap,    ly: cy + 4   },           /* right  */
+      { lx: cx - lW - gap, ly: cy + 4 },           /* left   */
+      { lx: cx - lW / 2, ly: cy + gap + LH }       /* below  */
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      var r = { x1: c.lx - 2, y1: c.ly - LH, x2: c.lx + lW + 2, y2: c.ly + 2 };
+      var conflict = false;
+      for (var j = 0; j < placed.length; j++) {
+        if (overlaps(r, placed[j])) { conflict = true; break; }
+      }
+      if (!conflict) {
+        placed.push(r);
+        svg.appendChild(el('text', {
+          x: c.lx, y: c.ly,
+          'font-size': 10.5, fill: '#555555',
+          'font-family': 'Inter,sans-serif',
+          'pointer-events': 'none'
+        }, d.name));
+        break;
+      }
+    }
+  });
+
+  wrap.appendChild(svg);
+})();
+</script>
+{% endif %}
+{% endblock %}

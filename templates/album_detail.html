@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{% if album %}{{ album.name }} — The Crate{% else %}Album — The Crate{% endif %}{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="error-banner">{{ error }}</div>
+{% else %}
+
+<div class="album-detail-nav">
+  <a href="#" class="detail-back" onclick="if(history.length > 1){ history.back(); } else { window.location.href='{{ url_for('top_albums') }}'; } return false;">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Indietro
+  </a>
+</div>
+
+<div class="album-detail-page">
+  <article class="album-card"
+    data-preview-fetched="false"
+    style="border-left-color: var(--blue);">
+    <div class="album-card__inner">
+      <div class="album-card__cover">
+        {% if album.cover_url %}
+        <img src="{{ album.cover_url }}" alt="Cover di {{ album.name }}" loading="lazy">
+        {% else %}
+        <div class="album-card__cover-placeholder">—</div>
+        {% endif %}
+      </div>
+
+      <div class="album-card__info">
+        <div class="album-card__heading">
+          <h3 class="album-card__title">
+            {{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}{% if album.special %} ✰{% endif %}
+          </h3>
+        </div>
+
+        <p class="album-card__artist">{{ album.artist }}</p>
+
+        {% if album.genres %}
+        <div class="album-card__tags">
+          {% for g in album.genres %}
+          <span class="genre-tag">{{ g }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if album.notes %}
+        <div class="album-notes">
+          <!-- notes contains HTML produced by _rich_text_to_html (html.escape + controlled tags only) — safe to render as HTML -->
+          <p class="album-notes__text">{{ album.notes | safe }}</p>
+        </div>
+        {% endif %}
+
+        {% if album.best_track %}
+        <p class="album-card__best-track">Miglior traccia: {{ album.best_track }}</p>
+        {% endif %}
+
+        {% if album.masterpiece_track_titles %}
+        <p class="album-card__best-track">Hits: {{ album.masterpiece_track_titles }}</p>
+        {% endif %}
+
+        <div class="preview-block">
+          <!-- Audio player injected lazily by fetchPreview() when the card enters the viewport -->
+          <div class="preview-audio-container" style="display:none"
+            data-deezer-artist="{{ album.artist }}"
+            data-deezer-album="{{ album.name }}"
+            data-deezer-best-track="{{ album.best_track }}"></div>
+          <div class="streaming-links">
+            <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="/static/spotify-icon.png" alt="Spotify" height="24">
+            </a>
+            <a href="{{ album.apple_music_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="/static/apple-music.png" alt="Apple Music" height="24">
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="album-card__score-block">
+        <div class="album-card__score-numeral">{% if album.score %}{{ album.score | int }}{% endif %}</div>
+        {% if album.tier or album.rank %}
+        <div class="album-card__score-meta">
+          {% if album.tier %}Tier {{ album.tier }}°{% endif %}{% if album.tier and album.rank %} · {% endif %}{% if album.rank %}Rank {{ album.rank }}°{% endif %}
+        </div>
+        {% endif %}
+        {% for score_conf in other_scores %}
+        {% set col = score_conf.name | lower | replace(' ', '_') %}
+        {% if album[col] is not none %}
+        <div class="album-card__score-meta" style="margin-top: 6px;">{{ score_conf.name }}: {{ album[col] | int if score_conf.type == 'integer' else album[col] }}/{{ score_conf.max }}</div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="score-details">
+      <div class="score-details__body">
+        <div class="score-metric">
+          <span class="score-metric__label">Produzione</span>
+          <span class="score-metric__value detail-value">{{ album.production }}/3.0</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric__label">Voce / Testi</span>
+          <span class="score-metric__value detail-value">{{ album.lyrics_novelty }}/3.0</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric__label">Tracce</span>
+          <span class="score-metric__value detail-value">{{ album.total_tracks if album.total_tracks else '/' }}</span>
+        </div>
+        <div class="score-metric">
+          <span class="score-metric__label">Durata</span>
+          <span class="score-metric__value detail-value">{{ album.duration }}</span>
+        </div>
+      </div>
+    </div>
+  </article>
+</div>
+
+{% endif %}
+{% endblock %}
