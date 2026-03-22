@@ -172,6 +172,32 @@ def get_artist_spotlight(df: pd.DataFrame) -> dict:
     }
 
 
+def get_genre_cards(df: pd.DataFrame) -> list:
+    """Returns per-genre summary for the Esplora genre grid.
+
+    Each entry has: genre name, album count, and the cover URL of the
+    top-rated album in that genre (used as the card background image).
+    """
+    if df.empty or "unique_genre" not in df.columns:
+        return []
+
+    result = []
+    for genre in sorted(df["unique_genre"].dropna().unique()):
+        genre_df = df[df["unique_genre"] == genre]
+        count = len(genre_df)
+        valid = genre_df.dropna(subset=["Score"])
+        if not valid.empty:
+            top_row = valid.sort_values(
+                by=["Score", "Rank"], ascending=[False, True]
+            ).iloc[0]
+            cover_url = str(top_row.get("cover_url", ""))
+        else:
+            cover_url = ""
+        result.append({"genre": genre, "count": count, "cover_url": cover_url})
+
+    return result
+
+
 def get_subgenre_scatter(df: pd.DataFrame) -> list:
     """Returns score vs. count data for each subgenre, for scatter plot rendering."""
     if df.empty:

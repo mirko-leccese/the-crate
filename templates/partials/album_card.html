@@ -53,11 +53,13 @@
       {% endif %}
 
       <div class="preview-block">
-        <!-- Audio player injected lazily by fetchPreview() when the card enters the viewport -->
-        <div class="preview-audio-container" style="display:none"
+        <!-- Audio player: visible immediately as placeholder; src set by fetchPreview() on load -->
+        <div class="preview-audio-container preview-audio-container--loading"
           data-deezer-artist="{{ album.artist }}"
           data-deezer-album="{{ album.name }}"
-          data-deezer-best-track="{{ album.best_track }}"></div>
+          data-deezer-best-track="{{ album.best_track }}">
+          <audio class="preview-audio" controls preload="none"></audio>
+        </div>
         <div class="streaming-links">
           <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
             <img src="/static/spotify-icon.png" alt="Spotify" height="24">

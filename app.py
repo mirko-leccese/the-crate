@@ -25,6 +25,7 @@ from libs.stats import (
     get_genre_breakdown,
     get_artist_spotlight,
     get_subgenre_scatter,
+    get_genre_cards,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -126,6 +127,54 @@ def get_data() -> pd.DataFrame:
 # Load at import time (works with gunicorn workers)
 _load_data()
 
+
+# ---------------------------------------------------------------------------
+# Genre descriptions — shown below the title on each genre page
+# ---------------------------------------------------------------------------
+
+GENRE_DESCRIPTIONS: dict[str, str] = {
+    "Rock": (
+        "Chitarre distorte, ritornelli che non escono più dalla testa, leggende e meteore. "
+        "Dal garage al Madison Square Garden, il rock è ancora vivo — anche se qualcuno "
+        "continua a dirci il contrario."
+    ),
+    "Metal": (
+        "Riff pesanti come macigni, blast beat e growl che svegliano i vicini. "
+        "Dai classici immortali al black metal più estremo: benvenuto nel lato oscuro."
+    ),
+    "Punk": (
+        "Tre accordi, due minuti e tanta rabbia. Il punk non è morto — si è solo un po' "
+        "ripulito. O forse no."
+    ),
+    "Jazz": (
+        "Improvvisazione, swing, blue note e silenzi che parlano. Il jazz è il genere che "
+        "più ti chiede di stare a sentire davvero. Vale la pena farlo."
+    ),
+    "Pop": (
+        "Il genere che tutti ascoltano e pochi ammettono. Qui non ci sono sensi di colpa: "
+        "un bel ritornello è un bel ritornello, punto."
+    ),
+    "Folk": (
+        "Storie vere, voci ruvide, strumenti acustici e radici profonde. Il folk è la "
+        "musica di chi aveva qualcosa da dire e non aveva bisogno di effetti speciali per dirlo."
+    ),
+    "Latin": (
+        "Ritmo nel sangue, melodie che non si dimenticano, reggaeton e una Corona vista mare. "
+        "Bienvenidos."
+    ),
+    "Electronic": (
+        "Sintetizzatori, campionatori, BPM a volontà. La musica fatta di circuiti e visioni "
+        "— dal club alle cuffie alle tre di notte."
+    ),
+    "Hip-Hop/Rap": (
+        "Rime taglienti, flow alieni e bassi che sfondano le casse della macchina. "
+        "Dagli States all'Italia, il meglio - e il peggio - del genere più popolare del momento!"
+    ),
+    "R&B/Soul": (
+        "Voce, groove e sentimento — il resto è contorno. Dall'era Motown alle produzioni "
+        "ultra-moderne, l'anima della musica nera non smette mai di sorprendere."
+    ),
+}
 
 # ---------------------------------------------------------------------------
 # Template filters
@@ -257,6 +306,96 @@ def _row_to_dict(row: pd.Series) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Filter helpers (shared by /top and /genere routes)
+# ---------------------------------------------------------------------------
+
+def _build_filter_options(df: pd.DataFrame) -> dict:
+    """Derive all filter option lists from a DataFrame slice."""
+    all_subgenres = sorted(set(
+        g for genres_list in df["Genre"].dropna()
+        if isinstance(genres_list, list)
+        for g in genres_list
+        if g
+    ))
+    all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
+    all_languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+    all_colors = sorted([x for x in df["Color"].dropna().unique() if str(x).strip()])
+    global_score_min = int(df["Score"].min()) if not df["Score"].dropna().empty else 0
+    global_score_max = int(df["Score"].max()) if not df["Score"].dropna().empty else 100
+    dataset_year_max = int(df["Release Year"].dropna().max()) if not df["Release Year"].dropna().empty else None
+    return dict(
+        all_subgenres=all_subgenres,
+        all_years=all_years,
+        all_languages=all_languages,
+        all_colors=all_colors,
+        global_score_min=global_score_min,
+        global_score_max=global_score_max,
+        dataset_year_max=dataset_year_max,
+    )
+
+
+def _read_filter_params(opts: dict, default_year_to_max: bool = False) -> dict:
+    """Read filter parameters from request.args.
+
+    When default_year_to_max is True, year_min/year_max default to
+    dataset_year_max when omitted (Archivio behaviour).  When False,
+    year bounds default to None so no year filter is applied (Genere
+    behaviour: show all years for the selected genre by default).
+    """
+    global_score_min = opts["global_score_min"]
+    dataset_year_max = opts["dataset_year_max"]
+
+    selected_subgenres = request.args.getlist("subgenre")
+    selected_language = request.args.get("language", "")
+    selected_color = request.args.get("color", "")
+
+    year_fallback = dataset_year_max if default_year_to_max else None
+    try:
+        year_min = int(request.args.get("year_min", ""))
+    except (ValueError, TypeError):
+        year_min = year_fallback
+    try:
+        year_max = int(request.args.get("year_max", ""))
+    except (ValueError, TypeError):
+        year_max = year_fallback
+    try:
+        score_min = int(request.args.get("score_min", global_score_min))
+    except (ValueError, TypeError):
+        score_min = global_score_min
+
+    return dict(
+        selected_subgenres=selected_subgenres,
+        selected_language=selected_language,
+        selected_color=selected_color,
+        year_min=year_min,
+        year_max=year_max,
+        score_min=score_min,
+    )
+
+
+def _apply_filters(df: pd.DataFrame, params: dict) -> pd.DataFrame:
+    """Apply filter params to a DataFrame and return it sorted."""
+    filtered = df.copy()
+    if params["selected_subgenres"]:
+        filtered = filtered[filtered["Genre"].apply(
+            lambda gs: isinstance(gs, list) and any(g in params["selected_subgenres"] for g in gs)
+        )]
+    if params["year_min"] is not None:
+        filtered = filtered[filtered["Release Year"] >= params["year_min"]]
+    if params["year_max"] is not None:
+        filtered = filtered[filtered["Release Year"] <= params["year_max"]]
+    filtered = filtered[filtered["Score"] >= params["score_min"]]
+    if params["selected_language"]:
+        filtered = filtered[filtered["Language"] == params["selected_language"]]
+    if params["selected_color"]:
+        filtered = filtered[filtered["Color"] == params["selected_color"]]
+    return filtered.sort_values(
+        by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
+        ascending=[False, False, False, False, True],
+    ).reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -271,7 +410,7 @@ def index():
                                added_this_year=0, pct_albums_change=None,
                                n_genres=0, avg_score=None,
                                delta_artists_added=None, pct_artists_change=None,
-                               top_ranking=[],
+                               top_ranking=[], genre_cards=[],
                                current_year=datetime.now().year, prev_year=datetime.now().year - 1)
 
     current_year = datetime.now().year
@@ -327,7 +466,7 @@ def index():
     # Carousel 1a/1b: this year split by language, ordered by Release Date desc
     this_year_sorted_df = df[this_year_mask].sort_values("Release Date", ascending=False)
     # Case-insensitive comparison to guard against casing inconsistencies in source data
-    italy_mask = this_year_sorted_df["Language"].str.lower() == "italian"
+    italy_mask = this_year_sorted_df["Language"].str.lower() == "italiano"
     new_releases_italy = [_row_to_dict(row) for _, row in this_year_sorted_df[italy_mask].head(20).iterrows()]
     new_releases_world = [_row_to_dict(row) for _, row in this_year_sorted_df[~italy_mask].head(20).iterrows()]
 
@@ -338,6 +477,9 @@ def index():
         .head(20)
     )
     albums_archive = [_row_to_dict(row) for _, row in albums_archive_df.iterrows()]
+
+    # Genre carousel
+    genre_cards = get_genre_cards(df)
 
     return render_template(
         "index.html",
@@ -354,6 +496,7 @@ def index():
         delta_artists_added=delta_artists_added,
         pct_artists_change=pct_artists_change,
         top_ranking=top_ranking,
+        genre_cards=genre_cards,
         new_releases_italy=new_releases_italy,
         new_releases_world=new_releases_world,
         albums_archive=albums_archive,
@@ -362,94 +505,39 @@ def index():
     )
 
 
-@app.route("/top")
-def top_albums():
+@app.route("/genere/<path:genre_name>")
+def genere(genre_name):
     df = get_data()
     if df.empty:
-        return render_template("top_albums.html", error=_load_error or "Impossibile caricare i dati.",
-                               albums=[], all_unique_genres=[], all_subgenres=[], all_years=[],
-                               all_languages=[], all_colors=[],
-                               score_min=0, global_score_min=0, global_score_max=100,
-                               selected_unique_genres=[], selected_subgenres=[],
-                               selected_language="", selected_color="",
-                               year_min=None, year_max=None)
+        return render_template(
+            "genere.html",
+            error=_load_error or "Impossibile caricare i dati.",
+            genre_name=genre_name, albums=[],
+            all_subgenres=[], all_years=[], all_languages=[], all_colors=[],
+            all_languages_global=[],
+            score_min=0, global_score_min=0, global_score_max=100,
+            selected_subgenres=[], selected_language="", selected_color="",
+            year_min=None, year_max=None,
+        )
 
-    # Build filter options
-    all_unique_genres = sorted(df["unique_genre"].dropna().unique())
-    all_subgenres = sorted(set(
-        g for genres_list in df["Genre"].dropna()
-        if isinstance(genres_list, list)
-        for g in genres_list
-        if g
-    ))
-    all_years = sorted([int(y) for y in df["Release Year"].dropna().unique()], reverse=True)
-    all_languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
-    all_colors = sorted([x for x in df["Color"].dropna().unique() if str(x).strip()])
-    global_score_min = int(df["Score"].min())
-    global_score_max = int(df["Score"].max())
-    dataset_year_max = int(df["Release Year"].dropna().max()) if not df["Release Year"].dropna().empty else None
-
-    # Read GET params
-    selected_unique_genres = request.args.getlist("unique_genre")
-    selected_subgenres = request.args.getlist("subgenre")
-    selected_language = request.args.get("language", "")
-    selected_color = request.args.get("color", "")
-    try:
-        year_min = int(request.args.get("year_min", ""))
-    except (ValueError, TypeError):
-        year_min = dataset_year_max
-    try:
-        year_max = int(request.args.get("year_max", ""))
-    except (ValueError, TypeError):
-        year_max = dataset_year_max
-    try:
-        score_min = int(request.args.get("score_min", global_score_min))
-    except (ValueError, TypeError):
-        score_min = global_score_min
-
-    # Apply filters
-    filtered = df.copy()
-    if selected_unique_genres:
-        filtered = filtered[filtered["unique_genre"].isin(selected_unique_genres)]
-    if selected_subgenres:
-        filtered = filtered[filtered["Genre"].apply(
-            lambda gs: isinstance(gs, list) and any(g in selected_subgenres for g in gs)
-        )]
-    if year_min is not None:
-        filtered = filtered[filtered["Release Year"] >= year_min]
-    if year_max is not None:
-        filtered = filtered[filtered["Release Year"] <= year_max]
-    filtered = filtered[filtered["Score"] >= score_min]
-    if selected_language:
-        filtered = filtered[filtered["Language"] == selected_language]
-    if selected_color:
-        filtered = filtered[filtered["Color"] == selected_color]
-
-    filtered = filtered.sort_values(
-        by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
-        ascending=[False, False, False, False, True],
-    ).reset_index(drop=True)
-
+    genre_df = df[df["unique_genre"] == genre_name]
+    opts = _build_filter_options(genre_df)
+    params = _read_filter_params(opts, default_year_to_max=False)
+    filtered = _apply_filters(genre_df, params)
     albums = [_row_to_dict(row) for _, row in filtered.iterrows()]
 
+    # All languages from the full dataset (for the language pill row)
+    all_languages_global = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+
     return render_template(
-        "top_albums.html",
+        "genere.html",
         error=None,
+        genre_name=genre_name,
+        genre_description=GENRE_DESCRIPTIONS.get(genre_name),
         albums=albums,
-        all_unique_genres=all_unique_genres,
-        all_subgenres=all_subgenres,
-        all_years=all_years,
-        all_languages=all_languages,
-        all_colors=all_colors,
-        selected_unique_genres=selected_unique_genres,
-        selected_subgenres=selected_subgenres,
-        selected_language=selected_language,
-        selected_color=selected_color,
-        year_min=year_min,
-        year_max=year_max,
-        score_min=score_min,
-        global_score_min=global_score_min,
-        global_score_max=global_score_max,
+        all_languages_global=all_languages_global,
+        **opts,
+        **params,
     )
 
 

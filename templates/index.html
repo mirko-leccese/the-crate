@@ -149,15 +149,39 @@
 </section>
 {% endif %}
 
+<!-- Carousel: generi -->
+{% if genre_cards %}
+<section class="shelf">
+  <div class="shelf__header">
+    <h2 class="shelf__title">Esplora per genere</h2>
+    <p class="shelf__subtitle">Sfoglia il catalogo per macro-genere musicale.</p>
+  </div>
+  <div class="shelf__track">
+    {% for card in genre_cards %}
+    <div class="shelf-card">
+      <a class="shelf-card__poster" href="{{ url_for('genere', genre_name=card.genre) }}">
+        {% if card.cover_url %}
+        <img class="shelf-card__cover" src="{{ card.cover_url }}" loading="lazy" alt="">
+        {% else %}
+        <div class="shelf-card__cover shelf-card__cover--placeholder"></div>
+        {% endif %}
+        <div class="shelf-card__overlay">
+          <div class="shelf-card__name">{{ card.genre }}</div>
+        </div>
+      </a>
+      <div class="shelf-card__date">{{ card.count }} album</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Top di sempre -->
 {% if top_ranking %}
 <hr class="section-divider">
 <section class="home-ranking">
-  <div class="shelf__header shelf__header--row">
-    <div>
-      <h2 class="shelf__title">Top di sempre</h2>
-    </div>
-    <a href="{{ url_for('top_albums') }}" class="shelf__see-all">Classifica completa →</a>
+  <div class="shelf__header">
+    <h2 class="shelf__title">Top di sempre</h2>
   </div>
   <table class="ranking-table">
     <thead>
@@ -197,4 +221,28 @@
 {% endif %}
 </div>{# /home-content #}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Restore scroll position when returning from a genre page.
+  // The key is written just before navigation and cleared immediately after
+  // restoration, so it only fires once per back-navigation.
+  (function() {
+    try {
+      var saved = sessionStorage.getItem('thecrate_home_scroll');
+      if (saved !== null) {
+        window.scrollTo(0, parseInt(saved, 10));
+        sessionStorage.removeItem('thecrate_home_scroll');
+      }
+    } catch(e) {}
+  })();
+
+  // Save scroll position before navigating to any genre page.
+  document.querySelectorAll('a[href*="/genere/"]').forEach(function(link) {
+    link.addEventListener('click', function() {
+      try { sessionStorage.setItem('thecrate_home_scroll', window.scrollY); } catch(e) {}
+    });
+  });
+</script>
 {% endblock %}
