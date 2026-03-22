@@ -33,13 +33,6 @@
         </a>
       </li>
       <li>
-        <a href="{{ url_for('top_albums') }}"
-           class="sidebar__link {% if request.endpoint == 'top_albums' %}sidebar__link--active{% endif %}">
-          <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.2"/><circle cx="8" cy="8" r="0.6" fill="currentColor" stroke="none"/></svg>
-          Archivio
-        </a>
-      </li>
-      <li>
         <a href="{{ url_for('search') }}"
            class="sidebar__link {% if request.endpoint == 'search' %}sidebar__link--active{% endif %}">
           <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10" y1="10" x2="14" y2="14"/></svg>
@@ -118,11 +111,21 @@
       document.head.appendChild(script);
     }
 
+    // _previewSetUnavailable — marks the container as unavailable.
+    // The audio placeholder is hidden via CSS and a "non disponibile" message
+    // is shown in its place at the same height — no layout shift.
+    function _previewSetUnavailable(container) {
+      container.classList.remove('preview-audio-container--loading');
+      container.classList.add('preview-audio-container--unavailable');
+    }
+
     // fetchPreview — client-side Deezer album search via JSONP.
     // Step 1: search for the album to get its Deezer album ID.
     // Step 2: fetch that album's track list and take the first track's preview URL.
     // Called when the card enters the viewport (IntersectionObserver below).
     // data-preview-fetched guards against repeat calls on re-enter.
+    // On success: sets src on the pre-rendered <audio> placeholder in-place (no layout shift).
+    // On failure: transitions the placeholder to an "unavailable" state (same dimensions).
     function fetchPreview(card) {
       if (!card || card.dataset.previewFetched === 'true') return;
       card.dataset.previewFetched = 'true';
@@ -132,18 +135,18 @@
 
       var artist = container.dataset.deezerArtist;
       var album  = container.dataset.deezerAlbum;
-      if (!artist || !album) return;
+      if (!artist || !album) { _previewSetUnavailable(container); return; }
 
       var q = 'artist:"' + artist + '" album:"' + album + '"';
       _dzJsonp(
         'https://api.deezer.com/search/album?q=' + encodeURIComponent(q) + '&limit=1&output=jsonp',
         function(res) {
-          if (!res || !res.data || !res.data[0]) return;
+          if (!res || !res.data || !res.data[0]) { _previewSetUnavailable(container); return; }
           var albumId = res.data[0].id;
           _dzJsonp(
             'https://api.deezer.com/album/' + albumId + '/tracks?output=jsonp',
             function(tracks) {
-              if (!tracks || !tracks.data || !tracks.data[0]) return;
+              if (!tracks || !tracks.data || !tracks.data[0]) { _previewSetUnavailable(container); return; }
               var bestTrack = (container.dataset.deezerBestTrack || '').toLowerCase().trim();
               var matched = null;
               if (bestTrack) {
@@ -155,13 +158,11 @@
                 }
               }
               var previewUrl = matched ? matched.preview : tracks.data[0].preview;
-              if (!previewUrl) return;
-              var audio = document.createElement('audio');
-              audio.controls = true;
-              audio.preload  = 'none';
-              audio.src      = previewUrl;
-              container.appendChild(audio);
-              container.style.display = '';
+              if (!previewUrl) { _previewSetUnavailable(container); return; }
+              // Update the pre-rendered placeholder in-place — no new element, no layout shift.
+              var audio = container.querySelector('audio');
+              audio.src = previewUrl;
+              container.classList.remove('preview-audio-container--loading');
             }
           );
         }

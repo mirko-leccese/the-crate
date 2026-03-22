@@ -646,6 +646,33 @@ details[open] .score-details__summary::before { content: '▾ '; }
   margin-top: 4px;
 }
 
+/* Loading state: pulse the placeholder audio bar while the API resolves */
+.preview-audio-container--loading .preview-audio {
+  opacity: 0.35;
+  animation: preview-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes preview-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.18; }
+}
+
+/* Unavailable state: hide the audio bar, show a same-height text message */
+.preview-audio-container--unavailable .preview-audio {
+  display: none;
+}
+
+.preview-audio-container--unavailable::after {
+  content: 'Anteprima non disponibile';
+  display: flex;
+  align-items: center;
+  height: 32px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .streaming-links {
   display: flex;
   gap: 8px;
@@ -688,6 +715,45 @@ details[open] .score-details__summary::before { content: '▾ '; }
 .filter-toggle:hover { background: var(--bg-muted); }
 
 .filter-toggle__icon { flex-shrink: 0; }
+
+/* Language pills row (genre page) */
+.lang-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.lang-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-medium);
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.lang-pill:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.lang-pill--active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-page);
+}
+
+/* Active filters summary */
+.filter-summary {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
 .filter-form {
   margin-top: 16px;
@@ -1560,3 +1626,21 @@ a.shelf-card__poster {
     gap: 16px;
   }
 }
+
+/* Back link on genere page */
+.page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.page-back:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
