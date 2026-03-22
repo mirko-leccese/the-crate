@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+@app.context_processor
+def inject_analytics():
+    return dict(umami_id=os.environ.get("UMAMI_WEBSITE_ID", ""))
+
 # ---------------------------------------------------------------------------
 # Data layer — loaded once at startup
 # ---------------------------------------------------------------------------
