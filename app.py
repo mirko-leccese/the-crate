@@ -16,9 +16,10 @@ except ImportError:
 
 import sqlite3
 
-from libs.utils import Utils
+from libs.utils import Utils, slugify
 from libs.streaming_links import spotify_search_url, apple_music_search_url
 from libs.stats import (
+    get_latest_release_year,
     get_summary_stats,
     get_tier_distribution,
     get_albums_per_year,
@@ -105,6 +106,12 @@ def _load_data() -> None:
             return ""
 
         df["cover_url"] = df.apply(_cover_url, axis=1)
+
+        # Slug for clean URLs: artist + album title → e.g. "kendrick-lamar-good-kid-maad-city"
+        df["slug"] = df.apply(
+            lambda r: slugify(str(r.get("Artist", "")) + " " + str(r.get("Name", ""))),
+            axis=1,
+        )
 
         # Parse dates
         df["Created"] = pd.to_datetime(df["Created"], utc=True, errors="coerce")
@@ -299,6 +306,7 @@ def _row_to_dict(row: pd.Series) -> dict:
         "special": bool(row.get("Special", False)),
         "language": _safe_str(row.get("Language")),
         "color": _safe_str(row.get("Color")),
+        "slug": _safe_str(row.get("slug")),
         # Streaming search URLs: pure string ops, no API call needed.
         "spotify_url": spotify_search_url(
             _safe_str(row.get("Artist")), _safe_str(row.get("Name"))
@@ -467,12 +475,25 @@ def index():
     ).head(5)
     top_ranking = [_row_to_dict(row) for _, row in top5_df.iterrows()]
 
-    # Carousel 1a/1b: this year split by language, ordered by Release Date desc
-    this_year_sorted_df = df[this_year_mask].sort_values("Release Date", ascending=False)
+    # Carousel 1a/1b: latest two release years, split by language, ordered by Created desc
     # Case-insensitive comparison to guard against casing inconsistencies in source data
-    italy_mask = this_year_sorted_df["Language"].str.lower() == "italiano"
-    new_releases_italy = [_row_to_dict(row) for _, row in this_year_sorted_df[italy_mask].head(20).iterrows()]
-    new_releases_world = [_row_to_dict(row) for _, row in this_year_sorted_df[~italy_mask].head(20).iterrows()]
+    italy_df = df[df["Language"].str.lower() == "italiano"]
+    world_df = df[df["Language"].str.lower() != "italiano"]
+
+    italy_latest = get_latest_release_year(italy_df)
+    world_latest = get_latest_release_year(world_df)
+
+    def _recent_releases(subset: pd.DataFrame, latest_year: int | None) -> list:
+        if latest_year is None or subset.empty:
+            return []
+        mask = subset["Release Year"].isin([latest_year, latest_year - 1])
+        return [
+            _row_to_dict(row)
+            for _, row in subset[mask].sort_values("Created", ascending=False).head(20).iterrows()
+        ]
+
+    new_releases_italy = _recent_releases(italy_df, italy_latest)
+    new_releases_world = _recent_releases(world_df, world_latest)
 
     # Carousel 2: archive (previous years), ordered by Created desc
     albums_archive_df = (
@@ -645,13 +666,13 @@ def random_albums():
     )
 
 
-@app.route("/album/<int:album_id>")
-def album_detail(album_id):
+@app.route("/album/<slug>")
+def album_detail(slug):
     df = get_data()
     if df.empty:
         return render_template("album_detail.html", error=_load_error or "Impossibile caricare i dati.",
                                album=None, other_scores=[]), 404
-    matches = df[df["Rank"] == album_id]
+    matches = df[df["slug"] == slug]
     if matches.empty:
         return render_template("album_detail.html", error="Album non trovato.",
                                album=None, other_scores=[]), 404

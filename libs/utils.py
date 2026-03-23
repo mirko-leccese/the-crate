@@ -2,8 +2,21 @@ import base64
 from io import BytesIO
 import os
 from pathlib import Path
+import re
+import unicodedata
 from typing import Optional
 from urllib.parse import urlparse
+
+
+def slugify(text: str) -> str:
+    """Convert text to a URL-safe slug (lowercase, hyphen-separated, ASCII only)."""
+    text = unicodedata.normalize("NFKD", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = text.lower()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_]+", "-", text)
+    text = re.sub(r"-+", "-", text)
+    return text.strip("-")
 
 import requests
 from PIL import Image

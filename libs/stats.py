@@ -8,6 +8,14 @@ import pandas as pd
 from libs.utils import Utils
 
 
+def get_latest_release_year(df: pd.DataFrame) -> int | None:
+    """Return the highest Release Year present in *df*, or None if df is empty."""
+    years = df["Release Year"].dropna()
+    if years.empty:
+        return None
+    return int(years.max())
+
+
 def get_summary_stats(df: pd.DataFrame) -> dict:
     """Returns top-level aggregate stats for the summary bar cards."""
     if df.empty:

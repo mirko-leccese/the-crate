@@ -54,7 +54,7 @@
   <div class="shelf__track">
     {% for album in new_releases_italy %}
     <div class="shelf-card">
-      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', slug=album.slug) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
@@ -89,7 +89,7 @@
   <div class="shelf__track">
     {% for album in new_releases_world %}
     <div class="shelf-card">
-      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', slug=album.slug) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
@@ -124,7 +124,7 @@
   <div class="shelf__track">
     {% for album in albums_archive %}
     <div class="shelf-card">
-      <a class="shelf-card__poster" href="{{ url_for('album_detail', album_id=album.rank) }}">
+      <a class="shelf-card__poster" href="{{ url_for('album_detail', slug=album.slug) }}">
         {% if album.cover_url %}
         <img class="shelf-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="">
         {% else %}
