@@ -29,7 +29,7 @@
   <p class="result-count">{{ albums | length }} risultat{{ 'o' if albums | length == 1 else 'i' }} per "{{ query }}"</p>
   <div class="album-list">
     {% for album in albums %}
-    {% with show_details=false, card_link_url=url_for('album_detail', album_id=album.rank) %}
+    {% with show_details=false, card_link_url=url_for('album_detail', slug=album.slug) %}
     {% include 'partials/album_card.html' %}
     {% endwith %}
     {% endfor %}

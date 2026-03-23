@@ -1057,21 +1057,6 @@ details[open] .score-details__summary::before { content: '▾ '; }
   line-height: 1.75;
 }
 
-.perche-hero {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 48px;
-  align-items: start;
-  margin-bottom: 48px;
-}
-
-.perche-hero-image img {
-  width: 100%;
-  border-radius: 12px;
-  display: block;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-}
-
 .perche-content p { margin-bottom: 1.2em; }
 .perche-content ul { margin: 0.5rem 0 1.2em 1.2rem; list-style: disc; }
 .perche-content li { margin-bottom: 0.4rem; }
@@ -1396,12 +1381,6 @@ a.shelf-card__poster {
 }
 
 @media (max-width: 768px) {
-  .perche-hero {
-    grid-template-columns: 1fr;
-  }
-  .perche-hero-image {
-    order: -1;
-  }
 }
 
 /* =========================================================

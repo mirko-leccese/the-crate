@@ -142,7 +142,7 @@
 <div class="album-list">
   {% for album in albums %}
   {% set pos = loop.index %}
-  {% with show_details=false, card_link_url=url_for('album_detail', album_id=album.rank) %}
+  {% with show_details=false, card_link_url=url_for('album_detail', slug=album.slug) %}
   {% include 'partials/album_card.html' %}
   {% endwith %}
   {% else %}
