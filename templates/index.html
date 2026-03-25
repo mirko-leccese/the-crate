@@ -47,9 +47,12 @@
 <!-- Carousel: nuove uscite italiane -->
 {% if new_releases_italy %}
 <section class="shelf">
-  <div class="shelf__header">
-    <h2 class="shelf__title">Hot New Releases dall'Italia</h2>
-    <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche stavolta 😈?</p>
+  <div class="shelf__header shelf__header--row">
+    <div>
+      <h2 class="shelf__title">Hot New Releases dall'Italia</h2>
+      <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche stavolta 😈?</p>
+    </div>
+    <a class="shelf__see-all" href="{{ url_for('archivio') }}?lingua=Italiano&sort=created{% if italia_anno_min %}&anno_min={{ italia_anno_min }}{% endif %}{% if italia_anno_max %}&anno_max={{ italia_anno_max }}{% endif %}">Esplora →</a>
   </div>
   <div class="shelf__track">
     {% for album in new_releases_italy %}
@@ -82,9 +85,12 @@
 <!-- Carousel: nuove uscite internazionali -->
 {% if new_releases_world %}
 <section class="shelf">
-  <div class="shelf__header">
-    <h2 class="shelf__title">Hot New Releases dal Mondo</h2>
-    <p class="shelf__subtitle">Il mondo là fuori fa musica — ogni tanto ne vale la pena ascoltarla.</p>
+  <div class="shelf__header shelf__header--row">
+    <div>
+      <h2 class="shelf__title">Hot New Releases dal Mondo</h2>
+      <p class="shelf__subtitle">Il mondo là fuori fa musica — ogni tanto ne vale la pena ascoltarla.</p>
+    </div>
+    <a class="shelf__see-all" href="{{ url_for('archivio') }}?{% for l in non_italian_languages %}lingua={{ l | urlencode }}&{% endfor %}sort=created{% if mondo_anno_min %}&anno_min={{ mondo_anno_min }}{% endif %}{% if mondo_anno_max %}&anno_max={{ mondo_anno_max }}{% endif %}">Esplora →</a>
   </div>
   <div class="shelf__track">
     {% for album in new_releases_world %}
@@ -117,9 +123,16 @@
 <!-- Carousel: archivio -->
 {% if albums_archive %}
 <section class="shelf">
-  <div class="shelf__header">
-    <h2 class="shelf__title">Digging from the Crate</h2>
-    <p class="shelf__subtitle">Riscoperte dal catalogo storico — perché ogni disco merita una seconda chance.</p>
+  <div class="shelf__header shelf__header--row">
+    <div>
+      <h2 class="shelf__title">Digging from the Crate</h2>
+      <p class="shelf__subtitle">Riscoperte dal catalogo storico — perché ogni disco merita una seconda chance.</p>
+    </div>
+    {% if crate_max_year %}
+    <a class="shelf__see-all" href="{{ url_for('archivio') }}?sort=created&anno_max={{ crate_max_year }}">Esplora →</a>
+    {% else %}
+    <a class="shelf__see-all" href="{{ url_for('archivio') }}?sort=created">Esplora →</a>
+    {% endif %}
   </div>
   <div class="shelf__track">
     {% for album in albums_archive %}
@@ -244,5 +257,51 @@
       try { sessionStorage.setItem('thecrate_home_scroll', window.scrollY); } catch(e) {}
     });
   });
+
+  // Carousel: arrow buttons + keyboard navigation
+  (function() {
+    var SCROLL_AMOUNT = 300;
+    var hoveredTrack = null;
+
+    document.querySelectorAll('.shelf').forEach(function(shelf) {
+      var track = shelf.querySelector('.shelf__track');
+      if (!track) return;
+
+      // Wrap track in a relative container for arrow positioning
+      var wrap = document.createElement('div');
+      wrap.className = 'shelf__track-wrap';
+      track.parentNode.insertBefore(wrap, track);
+      wrap.appendChild(track);
+
+      function makeArrow(dir) {
+        var btn = document.createElement('button');
+        btn.className = 'shelf__arrow shelf__arrow--' + dir;
+        btn.setAttribute('aria-label', dir === 'prev' ? 'Scorri a sinistra' : 'Scorri a destra');
+        btn.innerHTML = dir === 'prev' ? '&#8249;' : '&#8250;';
+        btn.addEventListener('click', function() {
+          track.scrollBy({ left: dir === 'prev' ? -SCROLL_AMOUNT : SCROLL_AMOUNT, behavior: 'smooth' });
+        });
+        return btn;
+      }
+
+      wrap.appendChild(makeArrow('prev'));
+      wrap.appendChild(makeArrow('next'));
+
+      shelf.addEventListener('mouseenter', function() { hoveredTrack = track; });
+      shelf.addEventListener('mouseleave', function() { hoveredTrack = null; });
+    });
+
+    // Arrow key scrolling when hovering a carousel
+    document.addEventListener('keydown', function(e) {
+      if (!hoveredTrack) return;
+      if (e.key === 'ArrowLeft') {
+        hoveredTrack.scrollBy({ left: -SCROLL_AMOUNT, behavior: 'smooth' });
+        e.preventDefault();
+      } else if (e.key === 'ArrowRight') {
+        hoveredTrack.scrollBy({ left: SCROLL_AMOUNT, behavior: 'smooth' });
+        e.preventDefault();
+      }
+    });
+  })();
 </script>
 {% endblock %}
