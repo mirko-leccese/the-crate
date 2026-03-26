@@ -93,6 +93,10 @@
     }
 
     toggle.addEventListener('click', () => {
+      // Enable the slide transition only on explicit user toggle, not on
+      // page load — prevents the sidebar from visually animating every time
+      // the page loads on mobile (the root cause of the black-flash bug).
+      sidebar.classList.add('sidebar--animated');
       sidebar.classList.toggle('sidebar--open');
       overlay.classList.toggle('sidebar-overlay--visible');
     });

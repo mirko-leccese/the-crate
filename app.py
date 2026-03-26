@@ -282,6 +282,15 @@ def _row_to_dict(row: pd.Series) -> dict:
         except (ValueError, AttributeError):
             pass
 
+    created_raw = row.get("Created")
+    created_formatted = ""
+    if created_raw is not None and not (isinstance(created_raw, float) and pd.isna(created_raw)):
+        try:
+            if hasattr(created_raw, "strftime"):
+                created_formatted = created_raw.strftime("%-d %b %Y")
+        except (ValueError, AttributeError):
+            pass
+
     return {
         "name": _safe_str(row.get("Name")),
         "artist": _safe_str(row.get("Artist")),
@@ -314,6 +323,7 @@ def _row_to_dict(row: pd.Series) -> dict:
         "apple_music_url": apple_music_search_url(
             _safe_str(row.get("Artist")), _safe_str(row.get("Name"))
         ),
+        "created_formatted": created_formatted,
     }
 
 

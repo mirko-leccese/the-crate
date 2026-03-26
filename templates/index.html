@@ -238,6 +238,42 @@
 
 {% block scripts %}
 <script>
+  // Carousel arrow buttons: inject prev/next buttons into each shelf track.
+  document.querySelectorAll('.shelf__track').forEach(function(track) {
+    var wrap = document.createElement('div');
+    wrap.className = 'shelf__track-wrap';
+    track.parentNode.insertBefore(wrap, track);
+    wrap.appendChild(track);
+
+    var prev = document.createElement('button');
+    prev.className = 'shelf__arrow shelf__arrow--prev';
+    prev.setAttribute('aria-label', 'Scorri a sinistra');
+    prev.innerHTML = '&#8249;';
+    wrap.appendChild(prev);
+
+    var next = document.createElement('button');
+    next.className = 'shelf__arrow shelf__arrow--next';
+    next.setAttribute('aria-label', 'Scorri a destra');
+    next.innerHTML = '&#8250;';
+    wrap.appendChild(next);
+
+    prev.addEventListener('click', function() { track.scrollBy({ left: -300, behavior: 'smooth' }); });
+    next.addEventListener('click', function() { track.scrollBy({ left: 300, behavior: 'smooth' }); });
+  });
+
+  // Keyboard ← → navigation when hovering over a shelf.
+  var _hoveredTrack = null;
+  document.querySelectorAll('.shelf').forEach(function(shelf) {
+    shelf.addEventListener('mouseenter', function() { _hoveredTrack = shelf.querySelector('.shelf__track'); });
+    shelf.addEventListener('mouseleave', function() { _hoveredTrack = null; });
+  });
+  document.addEventListener('keydown', function(e) {
+    if (!_hoveredTrack) return;
+    if (e.key === 'ArrowLeft')  { _hoveredTrack.scrollBy({ left: -300, behavior: 'smooth' }); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { _hoveredTrack.scrollBy({ left:  300, behavior: 'smooth' }); e.preventDefault(); }
+  });
+</script>
+<script>
   // Restore scroll position when returning from a genre page.
   // The key is written just before navigation and cleared immediately after
   // restoration, so it only fires once per back-navigation.
