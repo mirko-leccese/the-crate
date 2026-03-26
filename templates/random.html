@@ -100,7 +100,7 @@
   {% if albums %}
   <div class="random-grid">
     {% for album in albums %}
-    <div class="random-card">
+    <a class="random-card" href="{{ url_for('album_detail', slug=album.slug) }}">
       {% if album.cover_url %}
       <img class="random-card__cover" src="{{ album.cover_url }}" loading="lazy" alt="{{ album.name }}">
       {% else %}
@@ -113,7 +113,7 @@
         <div class="random-card__score">{{ album.score | int }}</div>
         {% endif %}
       </div>
-    </div>
+    </a>
     {% endfor %}
   </div>
   {% else %}

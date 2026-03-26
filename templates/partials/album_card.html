@@ -61,12 +61,17 @@
           <audio class="preview-audio" controls preload="none"></audio>
         </div>
         <div class="streaming-links">
-          <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
-            <img src="/static/spotify-icon.png" alt="Spotify" height="24">
-          </a>
-          <a href="{{ album.apple_music_url }}" target="_blank" rel="noopener noreferrer">
-            <img src="/static/apple-music.png" alt="Apple Music" height="24">
-          </a>
+          <div class="streaming-links__icons">
+            <a href="{{ album.spotify_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="/static/spotify-icon.png" alt="Spotify" height="24">
+            </a>
+            <a href="{{ album.apple_music_url }}" target="_blank" rel="noopener noreferrer">
+              <img src="/static/apple-music.png" alt="Apple Music" height="24">
+            </a>
+          </div>
+          {% if album.created_formatted %}
+          <span class="created-date">{{ album.created_formatted }}</span>
+          {% endif %}
         </div>
       </div>
     </div>

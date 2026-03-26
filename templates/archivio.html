@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ genre_name }} — The Crate{% endblock %}
+{% block title %}Crate Archivio — The Crate{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -7,12 +7,10 @@
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg>
     Home
   </a>
-  <h1 class="page-title">{{ genre_name }}</h1>
-  {% if genre_description %}
-  <p class="page-subtitle" style="line-height: 1.6; margin-top: 8px;">{{ genre_description }}</p>
-  {% endif %}
+  <h1 class="page-title">Crate Archivio</h1>
+  <p class="page-subtitle" style="line-height: 1.6; margin-top: 8px;">Tutto quello che è stato recensito. Niente di più, niente di meno.</p>
   {% if not error %}
-  <p class="page-subtitle">{{ albums | length }} album recensiti in questo genere.</p>
+  <p class="page-subtitle">{{ albums | length }} album recensiti.</p>
   {% endif %}
 </div>
 
@@ -25,11 +23,11 @@
 <div class="lang-pills">
   <a class="lang-pill {% if not selected_languages %}lang-pill--active{% endif %}"
      data-lang=""
-     href="{{ url_for('genere', genre_name=genre_name) }}">Tutti</a>
+     href="{{ url_for('archivio') }}">Tutti</a>
   {% for lang in all_languages_global %}
   <a class="lang-pill {% if lang in selected_languages %}lang-pill--active{% endif %}"
      data-lang="{{ lang }}"
-     href="{{ url_for('genere', genre_name=genre_name) }}">{{ lang }}</a>
+     href="{{ url_for('archivio') }}">{{ lang }}</a>
   {% endfor %}
 </div>
 {% endif %}
@@ -54,7 +52,7 @@
     <span id="filterToggleLabel">Filtri avanzati</span>
   </button>
 
-  {# Active filters summary: shown below button when advanced filters differ from defaults #}
+  {# Active filters summary #}
   {% set ns = namespace(parts=[]) %}
   {% if selected_subgenres %}{% set ns.parts = ns.parts + ["Sottogenere: " + selected_subgenres | join(", ")] %}{% endif %}
   {% if year_min is not none and year_max is not none and year_min == year_max %}
@@ -72,7 +70,7 @@
   <p class="filter-summary">{{ ns.parts | join(" · ") }}</p>
   {% endif %}
 
-  <form id="filterForm" class="filter-form filter-form--hidden" method="get" action="{{ url_for('genere', genre_name=genre_name) }}">
+  <form id="filterForm" class="filter-form filter-form--hidden" method="get" action="{{ url_for('archivio') }}">
     {# Carry multi-select language selection + current sort through form submission #}
     {% for lang in selected_languages %}
     <input type="hidden" name="lingua" value="{{ lang }}">
@@ -142,7 +140,7 @@
 
     <div class="filter-actions">
       <button type="submit" class="btn btn--primary">Applica filtri</button>
-      <a id="azzeraBtn" href="{{ url_for('genere', genre_name=genre_name) }}" class="btn btn--ghost">Azzera</a>
+      <a id="azzeraBtn" href="{{ url_for('archivio') }}" class="btn btn--ghost">Azzera</a>
     </div>
   </form>
 </div>
@@ -177,14 +175,11 @@
     filterToggleLabel.textContent = hidden ? 'Filtri avanzati' : 'Nascondi filtri';
   });
 
-  // Language pills: multi-select toggle.
-  // Each pill toggles its language in/out of the active "lingua" set while
-  // preserving all other query params (sort, subgenre, year, score, color).
+  // Language pills: multi-select toggle
   document.querySelectorAll('.lang-pill').forEach(function(pill) {
     var url = new URL(window.location.href);
     var lang = pill.dataset.lang;
     if (!lang) {
-      // "Tutti": clear all lingua params
       url.searchParams.delete('lingua');
     } else {
       var current = url.searchParams.getAll('lingua');
