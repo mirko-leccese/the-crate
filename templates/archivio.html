@@ -71,7 +71,7 @@
   {% endif %}
 
   <form id="filterForm" class="filter-form filter-form--hidden" method="get" action="{{ url_for('archivio') }}">
-    {# Carry multi-select language selection + current sort through form submission #}
+    {# Carry multi-select language selection through form submission #}
     {% for lang in selected_languages %}
     <input type="hidden" name="lingua" value="{{ lang }}">
     {% endfor %}
@@ -204,7 +204,7 @@
     pill.href = url.toString();
   });
 
-  // Azzera: clear advanced filters, keep only lingua params
+  // Azzera: clear advanced filters, keep only lingua
   (function() {
     var btn = document.getElementById('azzeraBtn');
     if (!btn) return;

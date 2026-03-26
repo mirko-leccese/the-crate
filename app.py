@@ -360,8 +360,8 @@ def _read_filter_params(opts: dict, default_year_to_max: bool = False) -> dict:
     """Read filter parameters from request.args.
 
     When default_year_to_max is True, year_min/year_max default to
-    dataset_year_max when omitted.  When False, year bounds default to None
-    so no year filter is applied (show all years by default).
+    dataset_year_max when omitted.  When False, year bounds default to
+    None so no year filter is applied (show all years by default).
     """
     global_score_min = opts["global_score_min"]
     dataset_year_max = opts["dataset_year_max"]
@@ -374,12 +374,12 @@ def _read_filter_params(opts: dict, default_year_to_max: bool = False) -> dict:
 
     year_fallback = dataset_year_max if default_year_to_max else None
     try:
-        # Support both year_min and anno_min (used by Esplora links)
+        # Support both year_min and anno_min (used by archivio Esplora links)
         year_min = int(request.args.get("year_min", "") or request.args.get("anno_min", ""))
     except (ValueError, TypeError):
         year_min = year_fallback
     try:
-        # Support both year_max and anno_max (used by Esplora links)
+        # Support both year_max and anno_max (used by archivio Esplora links)
         year_max = int(request.args.get("year_max", "") or request.args.get("anno_max", ""))
     except (ValueError, TypeError):
         year_max = year_fallback
@@ -538,13 +538,15 @@ def index():
         if str(x).strip() and str(x).strip().lower() != "italiano"
     ])
 
-    # Esplora year bounds — replicate exactly the release_year filters used per carousel.
+    # Esplora year bounds: replicate exactly the release_year filters used per carousel.
     # Carousel 1 (Italy): Release Year ∈ [italy_latest - 1, italy_latest]
     italia_anno_min = (italy_latest - 1) if italy_latest is not None else None
     italia_anno_max = italy_latest
+
     # Carousel 2 (World): Release Year ∈ [world_latest - 1, world_latest]
     mondo_anno_min = (world_latest - 1) if world_latest is not None else None
     mondo_anno_max = world_latest
+
     # Carousel 3 (Archive): Release Year != current_year → anno_max = current_year - 1
     crate_max_year = current_year - 1
 
@@ -578,37 +580,6 @@ def index():
     )
 
 
-@app.route("/archivio")
-def archivio():
-    df = get_data()
-    if df.empty:
-        return render_template(
-            "archivio.html",
-            error=_load_error or "Impossibile caricare i dati.",
-            albums=[],
-            all_subgenres=[], all_years=[], all_languages=[], all_colors=[],
-            all_languages_global=[],
-            score_min=0, global_score_min=0, global_score_max=100,
-            selected_subgenres=[], selected_languages=[], selected_color="",
-            sort="created", year_min=None, year_max=None,
-        )
-
-    opts = _build_filter_options(df)
-    params = _read_filter_params(opts, default_year_to_max=False)
-    filtered = _apply_filters(df, params)
-    albums = [_row_to_dict(row) for _, row in filtered.iterrows()]
-    all_languages_global = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
-
-    return render_template(
-        "archivio.html",
-        error=None,
-        albums=albums,
-        all_languages_global=all_languages_global,
-        **opts,
-        **params,
-    )
-
-
 @app.route("/genere/<path:genre_name>")
 def genere(genre_name):
     df = get_data()
@@ -638,6 +609,37 @@ def genere(genre_name):
         error=None,
         genre_name=genre_name,
         genre_description=GENRE_DESCRIPTIONS.get(genre_name),
+        albums=albums,
+        all_languages_global=all_languages_global,
+        **opts,
+        **params,
+    )
+
+
+@app.route("/archivio")
+def archivio():
+    df = get_data()
+    if df.empty:
+        return render_template(
+            "archivio.html",
+            error=_load_error or "Impossibile caricare i dati.",
+            albums=[],
+            all_subgenres=[], all_years=[], all_languages=[], all_colors=[],
+            all_languages_global=[],
+            score_min=0, global_score_min=0, global_score_max=100,
+            selected_subgenres=[], selected_languages=[], selected_color="",
+            sort="created", year_min=None, year_max=None,
+        )
+
+    opts = _build_filter_options(df)
+    params = _read_filter_params(opts, default_year_to_max=False)
+    filtered = _apply_filters(df, params)
+    albums = [_row_to_dict(row) for _, row in filtered.iterrows()]
+    all_languages_global = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+
+    return render_template(
+        "archivio.html",
+        error=None,
         albums=albums,
         all_languages_global=all_languages_global,
         **opts,

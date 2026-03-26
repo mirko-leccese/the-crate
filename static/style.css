@@ -341,13 +341,13 @@ ul { list-style: none; }
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   border: none;
   color: #fff;
-  font-size: 17px;
+  font-size: 22px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -776,6 +776,45 @@ details[open] .score-details__summary::before { content: '▾ '; }
 .filter-toggle:hover { background: var(--bg-muted); }
 
 .filter-toggle__icon { flex-shrink: 0; }
+
+/* Sort pills row (genre + archivio pages) */
+.sort-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.sort-pills__label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-right: 2px;
+}
+
+.sort-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border-medium);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.sort-pill:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.sort-pill--active {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-page);
+}
 
 /* Language pills row (genre page) */
 .lang-pills {
