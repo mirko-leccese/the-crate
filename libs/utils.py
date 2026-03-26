@@ -41,36 +41,54 @@ class Utils:
         return f"{lo_display}–{hi}"
 
     @staticmethod
-    def map_genres(genre: str):
-        lower_genre = str(genre).lower()
-        if "r&b" in lower_genre or "soul" in lower_genre:
-            return "R&B/Soul"
-        elif "pop rap" in lower_genre:
-            return "Hip-Hop/Rap"
-        elif "pop" in lower_genre:
-            return "Pop"
-        elif "punk" in lower_genre:
-            return "Punk"
-        elif "rap metal" in lower_genre:
-            return "Metal"
-        elif "rap" in lower_genre or "hip-hop" in lower_genre:
-            return "Hip-Hop/Rap"
-        elif "cantautorato" in lower_genre or lower_genre == "folk":
-            return "Folk"
-        elif "rock" in lower_genre: 
-            return "Rock"
-        elif "metal" in lower_genre:
-            return "Metal"
-        elif "jazz" in lower_genre:
-            return "Jazz"
-        elif "latin" in lower_genre or lower_genre == "reggaeton":
-            return "Latin"
-        elif "dance" in lower_genre or "electronic" in lower_genre:
-            return "Electronic"
-        elif "alternative" in lower_genre:
-            return "Alternative"
+    def map_genres(genres):
+        # Normalize to a list of lowercase stripped strings for per-item matching.
+        if isinstance(genres, list):
+            items = [str(g).lower().strip() for g in genres if g]
         else:
+            items = [str(genres).lower().strip()]
+
+        if not items:
             return "Other"
+
+        def has_sub(kw):
+            return any(kw in g for g in items)
+
+        def has_exact(kw):
+            return kw in items
+
+        if has_sub("r&b") or has_sub("soul"):
+            return "R&B/Soul"
+        if has_sub("pop rap"):
+            return "Hip-Hop/Rap"
+        if has_sub("pop"):
+            return "Pop"
+        if has_sub("punk"):
+            return "Punk"
+        # "Rap Metal" (exact genre name) is a metal genre — use exact match to avoid
+        # catching "Trap Metal" which is a hip-hop subgenre containing "rap metal" as a substring.
+        if has_exact("rap metal"):
+            return "Metal"
+        if has_sub("rap") or has_sub("hip-hop"):
+            # Metal wins only when "Metal" is explicitly listed as its own genre alongside hip-hop.
+            if has_exact("metal"):
+                return "Metal"
+            return "Hip-Hop/Rap"
+        if has_sub("cantautorato") or has_exact("folk"):
+            return "Folk"
+        if has_sub("rock"):
+            return "Rock"
+        if has_sub("metal"):
+            return "Metal"
+        if has_sub("jazz"):
+            return "Jazz"
+        if has_sub("latin") or has_exact("reggaeton"):
+            return "Latin"
+        if has_sub("dance") or has_sub("electronic"):
+            return "Electronic"
+        if has_sub("alternative"):
+            return "Alternative"
+        return "Other"
 
     # Calcolo colore dinamico dal rosso al verde (soft)
     @staticmethod
