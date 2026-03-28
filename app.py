@@ -17,7 +17,7 @@ except ImportError:
 
 import sqlite3
 
-from libs.utils import Utils, slugify
+from libs.utils import Utils, slugify, get_album_of_the_day
 from libs.streaming_links import spotify_search_url, apple_music_search_url
 from libs.stats import (
     get_latest_release_year,
@@ -332,6 +332,11 @@ def _row_to_dict(row: pd.Series) -> dict:
             _safe_str(row.get("Artist")), _safe_str(row.get("Name"))
         ),
         "created_formatted": created_formatted,
+        "energy": int(row["Energy"]) if pd.notna(row.get("Energy")) else None,
+        "emotional_weight": int(row["Emotional Weight"]) if pd.notna(row.get("Emotional Weight")) else None,
+        "density": int(row["Density"]) if pd.notna(row.get("Density")) else None,
+        "temperature": int(row["Temperature"]) if pd.notna(row.get("Temperature")) else None,
+        "vastness": int(row["Vastness"]) if pd.notna(row.get("Vastness")) else None,
     }
 
 
@@ -457,7 +462,8 @@ def index():
                                n_genres=0, avg_score=None,
                                delta_artists_added=None, pct_artists_change=None,
                                top_ranking=[], genre_cards=[],
-                               current_year=datetime.now().year, prev_year=datetime.now().year - 1)
+                               current_year=datetime.now().year, prev_year=datetime.now().year - 1,
+                               album_of_the_day=None)
 
     current_year = datetime.now().year
     prev_year = current_year - 1
@@ -585,6 +591,7 @@ def index():
         mondo_anno_min=mondo_anno_min,
         mondo_anno_max=mondo_anno_max,
         crate_max_year=crate_max_year,
+        album_of_the_day=get_album_of_the_day(df),
     )
 
 

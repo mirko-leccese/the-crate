@@ -1,7 +1,9 @@
 import base64
+from datetime import date
 from io import BytesIO
 import os
 from pathlib import Path
+import random
 import re
 import unicodedata
 from typing import Optional
@@ -191,3 +193,151 @@ class Utils:
         mime_type = mime_map.get(target.suffix.lower(), "image/png")
         b64 = base64.b64encode(content).decode("ascii")
         return f"data:{mime_type};base64,{b64}"
+
+
+def get_album_of_the_day(df) -> Optional[dict]:
+    """Return a single album dict deterministically chosen for today.
+
+    Selection criteria:
+    - Score >= 75
+    - cover_url must be non-empty (so there is always a cover to display)
+
+    The seed is derived from today's date (YYYYMMDD) so the same album is
+    returned for the entire day across all server workers and page loads,
+    and automatically rotates at midnight.
+
+    df.sample() uses numpy's RNG internally and ignores random.seed(), so
+    we use random.choice() on a plain Python list of positional indices instead.
+    """
+    import pandas as pd
+    from libs.streaming_links import spotify_search_url, apple_music_search_url
+
+    if df is None or df.empty:
+        return None
+
+    pool = df[
+        (df["Score"] >= 75) &
+        (df["cover_url"].notna()) &
+        (df["cover_url"].str.strip() != "")
+    ]
+
+    if pool.empty:
+        return None
+
+    seed = int(date.today().strftime("%Y%m%d"))
+    random.seed(seed)
+    chosen_idx = random.choice(list(range(len(pool))))
+    row = pool.iloc[chosen_idx]
+
+    def _s(v):
+        if v is None:
+            return ""
+        try:
+            if pd.isna(v):
+                return ""
+        except (TypeError, ValueError):
+            pass
+        return str(v)
+
+    def _fmt_score(v):
+        try:
+            f = float(v)
+            return "-" if pd.isna(f) else f"{f:.1f}"
+        except (TypeError, ValueError):
+            return "-"
+
+    def _fmt_dur(v):
+        try:
+            mins = int(float(v))
+            if mins < 60:
+                return f"{mins} min"
+            h, m = divmod(mins, 60)
+            return f"{h}h {m} min"
+        except (TypeError, ValueError):
+            return "/"
+
+    genres = row.get("Genre", [])
+    if not isinstance(genres, list):
+        genres = []
+
+    score_raw = row.get("Score")
+    try:
+        score = float(score_raw) if pd.notna(score_raw) else None
+    except (TypeError, ValueError):
+        score = None
+
+    tier_raw = row.get("Tier")
+    try:
+        tier = int(tier_raw) if pd.notna(tier_raw) else None
+    except (TypeError, ValueError):
+        tier = None
+
+    rank_raw = row.get("Rank")
+    try:
+        rank = int(rank_raw) if pd.notna(rank_raw) else None
+    except (TypeError, ValueError):
+        rank = None
+
+    release_year_raw = row.get("Release Year")
+    try:
+        release_year = int(release_year_raw) if pd.notna(release_year_raw) else None
+    except (TypeError, ValueError):
+        release_year = None
+
+    release_date = row.get("Release Date")
+    release_date_str = ""
+    if release_date is not None and not (isinstance(release_date, float) and pd.isna(release_date)):
+        try:
+            if hasattr(release_date, "strftime"):
+                release_date_str = release_date.strftime("%-d %b %Y")
+        except (ValueError, AttributeError):
+            pass
+
+    created_raw = row.get("Created")
+    created_formatted = ""
+    if created_raw is not None and not (isinstance(created_raw, float) and pd.isna(created_raw)):
+        try:
+            if hasattr(created_raw, "strftime"):
+                created_formatted = created_raw.strftime("%-d %b %Y")
+        except (ValueError, AttributeError):
+            pass
+
+    artist = _s(row.get("Artist"))
+    name = _s(row.get("Name"))
+    cover_url = _s(row.get("cover_url"))
+
+    return {
+        # Keys matching album_card.html partial expectations
+        "name": name,
+        "artist": artist,
+        "release_year": release_year,
+        "release_date_str": release_date_str,
+        "score": score,
+        "score_display": _fmt_score(score_raw),
+        "tier": tier,
+        "rank": rank,
+        "genres": genres,
+        "unique_genre": _s(row.get("unique_genre")),
+        "notes": _s(row.get("Notes")),
+        "best_track": _s(row.get("Best Track")),
+        "cover_url": cover_url,
+        "overall": _fmt_score(row.get("Overall")),
+        "production": _fmt_score(row.get("Production")),
+        "lyrics_novelty": _fmt_score(row.get("Lyrics/Novelty")),
+        "masterpiece_tracks": row.get("Masterpiece Tracks"),
+        "masterpiece_track_titles": _s(row.get("Masterpiece Track Titles")),
+        "total_tracks": int(row["Total Tracks"]) if pd.notna(row.get("Total Tracks")) else None,
+        "duration": _fmt_dur(row.get("Duration")),
+        "special": bool(row.get("Special", False)),
+        "language": _s(row.get("Language")),
+        "color": _s(row.get("Color")),
+        "slug": _s(row.get("slug")),
+        "spotify_url": spotify_search_url(artist, name),
+        "apple_music_url": apple_music_search_url(artist, name),
+        "created_formatted": created_formatted,
+        # Minimum required keys specified in task description
+        "album_name": name,
+        "cover_image": cover_url,
+        "genre": genres,
+        "note": _s(row.get("Notes")),
+    }
