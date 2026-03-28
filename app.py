@@ -38,6 +38,13 @@ app = Flask(__name__)
 def inject_analytics():
     return dict(umami_id=os.environ.get("UMAMI_WEBSITE_ID", ""))
 
+@app.context_processor
+def inject_seo():
+    return dict(
+        google_site_verification=os.environ.get("GOOGLE_SITE_VERIFICATION", ""),
+        canonical_url=request.url,
+    )
+
 # ---------------------------------------------------------------------------
 # Data layer — loaded once at startup
 # ---------------------------------------------------------------------------
