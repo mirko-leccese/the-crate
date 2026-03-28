@@ -1430,6 +1430,13 @@ details[open] .score-details__summary::before { content: '▾ '; }
   width: 100%;
 }
 
+.album-detail-page .album-card__cover img {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  display: block;
+}
+
 /* Clickable cards in Archivio/Cerca */
 .album-card[data-detail-url] {
   cursor: pointer;
@@ -1449,6 +1456,31 @@ a.shelf-card__poster {
     margin-left: auto;
     margin-right: auto;
   }
+}
+
+/* --- Album del giorno ------------------------------------ */
+.album-del-giorno {
+  margin-bottom: 2.5rem;
+}
+
+/* --- Radar chart (album detail page, inside cover column) --- */
+.album-card__cover {
+  display: flex;
+  flex-direction: column;
+}
+
+.radar-chart-cover {
+  width: 100%;
+  max-width: 300px;
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.radar-chart-cover canvas {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 300px;
 }
 
 /* --- Responsive (mobile ≤ 640px) ------------------------- */
@@ -1475,15 +1507,25 @@ a.shelf-card__poster {
   /* Page header */
   .page-title { font-size: 21px; }
 
-  /* Stat cards: 2×2 grid */
+  /* Stat cards: 2×2 grid, hide secondary cards */
   .stat-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .stat-card { padding: 12px 14px; }
   .stat-card__value { font-size: 28px; letter-spacing: -1px; }
+  .stat-card--hide-mobile { display: none; }
 
   /* Carousel cards */
   .shelf-card { min-width: 150px; max-width: 150px; }
   .shelf-card__poster { width: 150px; height: 150px; }
   .shelf-card__date { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+  /* Radar chart */
+  .radar-chart-cover { max-width: 100%; margin-top: 1.5rem; }
+  .radar-chart-cover canvas { max-width: 100%; }
+
+  /* Album del giorno: hide verbose fields on mobile to keep the card compact */
+  .album-del-giorno .album-notes__text,
+  .album-del-giorno .album-notes__toggle { display: none; }
+  .album-del-giorno .album-card__best-track { display: none; }
 
   /* Album cards: vertical stack */
   .album-card { border-left: none; }

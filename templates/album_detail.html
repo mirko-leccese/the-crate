@@ -26,6 +26,11 @@
         {% else %}
         <div class="album-card__cover-placeholder">—</div>
         {% endif %}
+        {% if album.energy and album.emotional_weight and album.density and album.temperature and album.vastness %}
+        <div class="radar-chart-cover">
+          <canvas id="radarChart" width="300" height="300"></canvas>
+        </div>
+        {% endif %}
       </div>
 
       <div class="album-card__info">
@@ -121,7 +126,58 @@
       </div>
     </div>
   </article>
+
 </div>
 
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if album and album.energy and album.emotional_weight and album.density and album.temperature and album.vastness %}
+<script>
+  (function() {
+    var canvas = document.getElementById('radarChart');
+    if (!canvas) return;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    s.onload = function() {
+      new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: ['Energia', 'Emozione', 'Densità', 'Temperatura', 'Spazio'],
+          datasets: [{
+            data: [{{ album.energy }}, {{ album.emotional_weight }}, {{ album.density }}, {{ album.temperature }}, {{ album.vastness }}],
+            tension: 0.4,
+            backgroundColor: 'rgba(56, 132, 220, 0.15)',
+            borderColor: 'rgba(56, 132, 220, 0.85)',
+            pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              min: 0,
+              max: 5,
+              ticks: { stepSize: 1, display: false },
+              grid: { color: 'rgba(56, 132, 220, 0.2)' },
+              angleLines: { color: 'rgba(56, 132, 220, 0.25)' },
+              pointLabels: {
+                font: { family: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", size: 12 },
+                color: '#666666'
+              }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    };
+    document.head.appendChild(s);
+  })();
+</script>
 {% endif %}
 {% endblock %}

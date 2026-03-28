@@ -34,15 +34,29 @@
     <div class="stat-card__sub {% if pct_artists_change > 0 %}delta-pos{% elif pct_artists_change < 0 %}delta-neg{% endif %}">{% if pct_artists_change > 0 %}↑ {% elif pct_artists_change < 0 %}↓ {% endif %}{% if pct_artists_change > 0 %}+{% endif %}{{ pct_artists_change }}%</div>
     {% endif %}
   </div>
-  <div class="stat-card">
+  <div class="stat-card stat-card--hide-mobile">
     <div class="stat-card__value stat-card__value--dark">{{ n_genres }}</div>
     <div class="stat-card__label">Generi</div>
   </div>
-  <div class="stat-card">
+  <div class="stat-card stat-card--hide-mobile">
     <div class="stat-card__value stat-card__value--dark">{% if avg_score %}{{ avg_score }}{% else %}—{% endif %}</div>
     <div class="stat-card__label">Voto medio</div>
   </div>
 </div>
+
+<!-- Album del giorno -->
+{% if album_of_the_day %}
+<hr class="section-divider">
+<section class="album-del-giorno">
+  <div class="shelf__header">
+    <h2 class="shelf__title">Album del giorno</h2>
+    <p class="shelf__subtitle">Un disco al giorno dal crate... chissà se oggi è quello giusto per te</p>
+  </div>
+  {% with album=album_of_the_day, show_details=false, card_link_url=url_for('album_detail', slug=album_of_the_day.slug) %}
+  {% include 'partials/album_card.html' %}
+  {% endwith %}
+</section>
+{% endif %}
 
 <!-- Carousel: nuove uscite italiane -->
 {% if new_releases_italy %}
@@ -339,5 +353,13 @@
       }
     });
   })();
+
+  // Album del giorno: click anywhere on the card to navigate to the album detail page.
+  document.querySelectorAll('.album-del-giorno .album-card[data-detail-url]').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.closest('a, button, audio, input, select')) return;
+      window.location.href = card.dataset.detailUrl;
+    });
+  });
 </script>
 {% endblock %}

@@ -78,5 +78,10 @@ def extract_album_info(page):
         "Best Track": safe_get("Best Track", "rich_text")[0]["text"]["content"] if safe_get("Best Track", "rich_text") else None,
         "Picname": safe_get("Picname", "rich_text")[0]["text"]["content"] if safe_get("Picname", "rich_text") else None,
         "Release Date": safe_get("Release Date", "date", "start"),
-        "Masterpiece Track Titles": safe_get("Masterpiece Track Titles", "rich_text")[0]["text"]["content"] if safe_get("Masterpiece Track Titles", "rich_text") else None
+        "Masterpiece Track Titles": safe_get("Masterpiece Track Titles", "rich_text")[0]["text"]["content"] if safe_get("Masterpiece Track Titles", "rich_text") else None,
+        "Energy": safe_get("Energy", "number"),
+        "Emotional Weight": safe_get("Emotional Weight", "number"),
+        "Density": safe_get("Density", "number"),
+        "Temperature": safe_get("Temperature", "number"),
+        "Vastness": safe_get("Vastness", "number"),
     }

@@ -42,8 +42,39 @@
   <h2>Le sezioni</h2>
   <p>Usa il menù laterale per navigare. Troverai:</p>
   <ul>
-    <li><strong>Cerca</strong> — ricerca libera per artista o titolo.</li>
-    <li><strong>Random!</strong> — lascia che il caso scelga per te. Vuoi un disco a caso del 1972? Questa è la tua sezione.</li>
+    <li><strong>Crate Archivio</strong> — la lista completa degli album recensiti. Puoi filtrare per genere, lingua, decennio e ordinare per punteggio. È il cuore del sito.</li>
+    <li><strong>Cerca</strong> — ricerca libera per artista o titolo. Veloce e diretta, senza fronzoli.</li>
+    <li><strong>Random!</strong> — pesca un album a caso dall'archivio. Supporta i filtri: un jazz degli anni '70, un metal degli anni '90, un disco a caso del 1972 — tutto possibile. Per quando non hai voglia di scegliere.</li>
+    <li><strong>Stats</strong> — una panoramica dell'archivio con grafici e dati aggregati: distribuzione dei punteggi, generi, decenni, artisti più recensiti e altro. Per i curiosi — o per i maniaci dell'ordine, come me.</li>
+  </ul>
+
+  <hr class="perche-divider">
+
+  <h2>Come leggere un album card</h2>
+  <p>Il cuore pulsante di questo archivio sono le card degli album. Ogni card contiene informazioni generali come artista, anno di uscita e genere, ma anche:</p>
+  <ul>
+    <li>Una recensione personalissima — e quindi opinabile per definizione</li>
+    <li>Uno <strong>Score da 0 a 100</strong> (spiegato nel dettaglio nella sezione dedicata qui sotto)</li>
+    <li><strong>Tier e Rank</strong>: il Tier è un macroraggruppamento dello Score (nel Tier 1 rientrano le vere gemme). Il Rank è la posizione dell'album nell'archivio generale — è dinamico per natura e cambia man mano che l'archivio cresce</li>
+    <li><strong>Miglior traccia</strong>: a mio parere la traccia migliore del disco. È un campo presente per tutti gli album, anche i peggiori — in quei casi è semplicemente la meno peggio</li>
+    <li><strong>Hits</strong>: le tracce più memorabili del disco, spesso quelle che hanno sfondato nel mainstream, ma non necessariamente</li>
+    <li><strong>Audio preview</strong>: per alcuni album troverete un breve estratto audio, per farvi un'idea del suono prima di cliccare su play</li>
+    <li><strong>Link a Spotify e Apple Music</strong>: cliccate sulle icone per aprire l'album direttamente sui principali servizi di streaming</li>
+    <li><strong>Radar chart</strong>: una mappa visuale che racconta l'album attraverso 5 dimensioni — ve le spiego qui sotto</li>
+  </ul>
+
+  <img src="{{ url_for('static', filename='album-explained.png') }}"
+       alt="Esempio di album card"
+       style="max-width: 100%; height: auto; display: block; margin: 1.5rem auto;">
+
+  <h3>Le 5 dimensioni del Radar</h3>
+  <p>Ogni dimensione ha un valore da 1 a 5. Eccole:</p>
+  <ul>
+    <li><strong>Energia</strong> — la più immediata: misura l'impatto energetico del disco. 5 significa un disco adrenalinico — ballabile se stiamo parlando di pop, o una raffica di batterie martellanti se stiamo parlando di metal. 1 significa un disco quieto, statico, da ascoltare sdraiati.</li>
+    <li><strong>Emozione</strong> — probabilmente la più soggettiva. Misura l'impatto emotivo del disco: 5 è un ascolto intimo e toccante, che ti arriva dentro. 1 è un disco leggero, senza pretese emotive, da mettere in sottofondo senza pensieri.</li>
+    <li><strong>Densità</strong> — misura la stratificazione e la varietà sonora. 5 sono dischi complessi, con produzioni ricche di layer e strumenti. 1 sono dischi minimali, spogli, dove ogni elemento ha il suo spazio.</li>
+    <li><strong>Temperatura</strong> — misura quanto il disco è "caldo". 5 evoca ambienti caldi, atmosfere sensuali o emotivamente cariche. 1 è un disco freddo, distaccato, quasi invernale.</li>
+    <li><strong>Spazio</strong> — cerca di restituire il "respiro" del disco. 5 evocano paesaggi aperti, ampi, lontani dall'intimità. 1 riportano a spazi chiusi, interiori, raccolti.</li>
   </ul>
 
   <hr class="perche-divider">
