@@ -1522,6 +1522,14 @@ a.shelf-card__poster {
   .radar-chart-cover { max-width: 100%; margin-top: 1.5rem; }
   .radar-chart-cover canvas { max-width: 100%; }
 
+  /* Detail page: cover image full width */
+  .album-detail-page .album-card__cover img { max-width: 100%; }
+
+  /* Detail page: unwrap cover div so img and radar become direct flex children
+     of .album-card__inner; then order:1 on radar pushes it after the score block */
+  .album-detail-page .album-card__cover { display: contents; }
+  .album-detail-page .radar-chart-cover { order: 1; }
+
   /* Album del giorno: hide verbose fields on mobile to keep the card compact */
   .album-del-giorno .album-notes__text,
   .album-del-giorno .album-notes__toggle { display: none; }
