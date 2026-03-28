@@ -4,9 +4,10 @@ import os
 import random as _random
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, Response
 
 try:
     from dotenv import load_dotenv
@@ -817,6 +818,72 @@ def stats():
 @app.route("/perche")
 def perche():
     return render_template("perche.html")
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    base = os.environ.get("BASE_URL", "https://the-crate.onrender.com").rstrip("/")
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    urls = []
+
+    # Static pages
+    static_pages = [
+        ("/",         "1.0", "weekly"),
+        ("/archivio", "0.8", "weekly"),
+        ("/stats",    "0.8", "weekly"),
+        ("/perche",   "0.8", "weekly"),
+        ("/search",   "0.6", "weekly"),
+        ("/random",   "0.6", "weekly"),
+    ]
+    for path, priority, changefreq in static_pages:
+        urls.append((base + path, today, changefreq, priority))
+
+    # Genre pages — one per canonical genre
+    for genre in GENRE_DESCRIPTIONS:
+        genre_path = "/genere/" + quote(genre, safe="/")
+        urls.append((base + genre_path, today, "weekly", "0.8"))
+
+    # Album detail pages — lastmod from Created date when available
+    df = get_data()
+    if not df.empty:
+        for _, row in df.iterrows():
+            slug = _safe_str(row.get("slug"))
+            if not slug:
+                continue
+            created = row.get("Created")
+            if created is not None and hasattr(created, "strftime"):
+                lastmod = created.strftime("%Y-%m-%d")
+            else:
+                lastmod = today
+            urls.append((base + "/album/" + slug, lastmod, "weekly", "0.6"))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for loc, lastmod, changefreq, priority in urls:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{loc}</loc>")
+        lines.append(f"    <lastmod>{lastmod}</lastmod>")
+        lines.append(f"    <changefreq>{changefreq}</changefreq>")
+        lines.append(f"    <priority>{priority}</priority>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+
+    return Response("\n".join(lines), mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots():
+    base = os.environ.get("BASE_URL", "https://the-crate.onrender.com").rstrip("/")
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin\n"
+        f"\nSitemap: {base}/sitemap.xml\n"
+    )
+    return Response(content, mimetype="text/plain")
 
 
 if __name__ == "__main__":
