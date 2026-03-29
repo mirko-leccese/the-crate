@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Classifiche — The Crate{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Classifiche</h1>
+  <p class="page-subtitle" style="line-height: 1.6; margin-top: 8px;">I migliori dischi del crate, ordinati per voto.</p>
+</div>
+
+{% if error %}
+<div class="error-banner">{{ error }}</div>
+{% else %}
+
+<!-- Language pills -->
+{% if languages %}
+<div class="lang-pills">
+  <a class="lang-pill {% if not selected_language %}lang-pill--active{% endif %}"
+     href="{{ url_for('classifiche') }}{% if selected_year != 'all' %}?year={{ selected_year }}{% endif %}">Tutte</a>
+  {% for lang in languages %}
+  <a class="lang-pill {% if lang == selected_language %}lang-pill--active{% endif %}"
+     href="{{ url_for('classifiche') }}?language={{ lang | urlencode }}{% if selected_year != 'all' %}&year={{ selected_year }}{% endif %}">{{ lang }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Year filter pills -->
+<div class="classifiche-year-pills">
+  <a class="classifiche-year-pill {% if selected_year == 'all' %}classifiche-year-pill--active{% endif %}"
+     href="{{ url_for('classifiche') }}{% if selected_language %}?language={{ selected_language | urlencode }}{% endif %}">Di sempre</a>
+  {% for y in years %}
+  <a class="classifiche-year-pill {% if selected_year == y | string %}classifiche-year-pill--active{% endif %}"
+     href="{{ url_for('classifiche') }}?year={{ y }}{% if selected_language %}&language={{ selected_language | urlencode }}{% endif %}">{{ y }}</a>
+  {% endfor %}
+</div>
+
+<!-- Result count -->
+<p class="result-count">{{ albums | length }} album in classifica</p>
+
+<!-- Ranking table -->
+{% if albums %}
+<section class="classifiche-ranking">
+  <table class="ranking-table">
+    <thead>
+      <tr>
+        <th style="width:32px">#</th>
+        <th>Album</th>
+        <th>Genere</th>
+        <th style="text-align:right">Voto</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for album in albums %}
+      <tr>
+        <td class="rank-n">{{ loop.index }}</td>
+        <td>
+          <a href="{{ url_for('album_detail', slug=album.slug) }}" class="rank-row-link">
+            <div class="rank-info-cell">
+              {% if album.cover_url %}
+              <img class="rank-thumb rank-thumb--lg" src="{{ album.cover_url }}" alt="" loading="lazy">
+              {% else %}
+              <div class="rank-thumb rank-thumb--lg rank-thumb--placeholder"></div>
+              {% endif %}
+              <div class="rank-text">
+                <div class="r-name">{{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}</div>
+                <div class="r-artist">{{ album.artist }}</div>
+                {% if album.genres %}
+                <div class="album-card__tags">
+                  {% for g in album.genres %}<span class="genre-tag">{{ g }}</span>{% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </td>
+        <td class="rank-genre">{{ album.unique_genre }}</td>
+        <td class="rank-score-cell">{{ album.score | int }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="empty-state">Nessun album corrisponde ai filtri selezionati.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<style>
+  /* Year filter pills — centered row, pill-shaped */
+  .classifiche-year-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .classifiche-year-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border-default);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+
+  .classifiche-year-pill:hover {
+    background: var(--bg-muted);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+  }
+
+  .classifiche-year-pill--active {
+    background: var(--text-primary);
+    border-color: var(--text-primary);
+    color: var(--bg-page);
+  }
+
+  /* Larger cover thumbs for classifiche */
+  .rank-thumb--lg {
+    width: 120px;
+    height: 120px;
+  }
+
+  /* Make the album cell link unstyled */
+  .rank-row-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .rank-row-link:hover .r-name {
+    text-decoration: underline;
+  }
+
+  /* Top-align cover and text block */
+  .classifiche-ranking .rank-info-cell {
+    align-items: flex-start;
+  }
+</style>
+{% endblock %}

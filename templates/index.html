@@ -203,48 +203,6 @@
 </section>
 {% endif %}
 
-<!-- Top di sempre -->
-{% if top_ranking %}
-<hr class="section-divider">
-<section class="home-ranking">
-  <div class="shelf__header">
-    <h2 class="shelf__title">Top di sempre</h2>
-  </div>
-  <table class="ranking-table">
-    <thead>
-      <tr>
-        <th style="width:28px">#</th>
-        <th>Album</th>
-        <th>Genere</th>
-        <th style="text-align:center">Voto</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for album in top_ranking %}
-      <tr>
-        <td class="rank-n">{{ loop.index }}</td>
-        <td>
-          <div class="rank-info-cell">
-            {% if album.cover_url %}
-            <img class="rank-thumb" src="{{ album.cover_url }}" alt="" loading="lazy">
-            {% else %}
-            <div class="rank-thumb rank-thumb--placeholder"></div>
-            {% endif %}
-            <div class="rank-text">
-              <div class="r-name">{{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}</div>
-              <div class="r-artist">{{ album.artist }}</div>
-            </div>
-          </div>
-        </td>
-        <td class="rank-genre">{{ album.unique_genre }}</td>
-        <td class="rank-score-cell">{{ album.score | int }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-{% endif %}
-
 {% endif %}
 </div>{# /home-content #}
 

@@ -461,7 +461,7 @@ def index():
                                added_this_year=0, pct_albums_change=None,
                                n_genres=0, avg_score=None,
                                delta_artists_added=None, pct_artists_change=None,
-                               top_ranking=[], genre_cards=[],
+                               genre_cards=[],
                                current_year=datetime.now().year, prev_year=datetime.now().year - 1,
                                album_of_the_day=None)
 
@@ -507,13 +507,6 @@ def index():
     pct_artists_change = None
     if n_artists_added_prev_year > 0:
         pct_artists_change = round((n_artists_added_this_year - n_artists_added_prev_year) / n_artists_added_prev_year * 100)
-
-    # Top 5 ranking
-    top5_df = df.sort_values(
-        by=["Score", "Masterpiece Tracks", "Release Year"],
-        ascending=[False, False, True],
-    ).head(5)
-    top_ranking = [_row_to_dict(row) for _, row in top5_df.iterrows()]
 
     # Carousel 1a/1b: latest two release years, split by language, ordered by Created desc
     # Case-insensitive comparison to guard against casing inconsistencies in source data
@@ -578,7 +571,6 @@ def index():
         avg_score=avg_score,
         delta_artists_added=delta_artists_added,
         pct_artists_change=pct_artists_change,
-        top_ranking=top_ranking,
         genre_cards=genre_cards,
         new_releases_italy=new_releases_italy,
         new_releases_world=new_releases_world,
@@ -825,6 +817,59 @@ def stats():
 @app.route("/perche")
 def perche():
     return render_template("perche.html")
+
+
+@app.route("/classifiche")
+def classifiche():
+    df = get_data()
+    if df.empty:
+        return render_template(
+            "classifiche.html",
+            error=_load_error or "Impossibile caricare i dati.",
+            albums=[], languages=[], years=[], selected_language=None, selected_year="all",
+        )
+
+    # Filter options from the full unfiltered dataset
+    languages = sorted([x for x in df["Language"].dropna().unique() if str(x).strip()])
+
+    # 5 most recent years present in the data
+    all_years_desc = sorted(
+        [int(y) for y in df["Release Year"].dropna().unique()], reverse=True
+    )
+    years = all_years_desc[:5]
+
+    # Active filter values
+    selected_language = request.args.get("language") or None
+    selected_year = request.args.get("year", "all")
+
+    # Apply filters
+    filtered = df.copy()
+    if selected_language:
+        filtered = filtered[filtered["Language"] == selected_language]
+    if selected_year != "all":
+        try:
+            year_int = int(selected_year)
+            filtered = filtered[filtered["Release Year"] == year_int]
+        except (ValueError, TypeError):
+            selected_year = "all"
+
+    # Rank by score (same sort order used globally) and take top 200
+    top200 = filtered.sort_values(
+        by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
+        ascending=[False, False, False, False, True],
+    ).head(200)
+
+    albums = [_row_to_dict(row) for _, row in top200.iterrows()]
+
+    return render_template(
+        "classifiche.html",
+        error=None,
+        albums=albums,
+        languages=languages,
+        years=years,
+        selected_language=selected_language,
+        selected_year=selected_year,
+    )
 
 
 @app.route("/sitemap.xml")

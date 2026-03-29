@@ -50,6 +50,13 @@
         </a>
       </li>
       <li>
+        <a href="{{ url_for('classifiche') }}"
+           class="sidebar__link {% if request.endpoint == 'classifiche' %}sidebar__link--active{% endif %}">
+          <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1 L10 5 L14.5 5.5 L11.2 8.5 L12.1 13 L8 10.8 L3.9 13 L4.8 8.5 L1.5 5.5 L6 5 Z"/></svg>
+          Classifiche
+        </a>
+      </li>
+      <li>
         <a href="{{ url_for('search') }}"
            class="sidebar__link {% if request.endpoint == 'search' %}sidebar__link--active{% endif %}">
           <svg class="sidebar__icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="4.5"/><line x1="10" y1="10" x2="14" y2="14"/></svg>
