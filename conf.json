@@ -1,6 +1,7 @@
 {
   "other_scores": [
     { "name": "Metacritic", "max": 100, "type": "integer" },
-    { "name": "OndaRock", "max": 10, "type": "float" }
+    { "name": "OndaRock", "max": 10, "type": "float" },
+    {"name": "sentireascoltare", "max": 10, "type": "float"}
   ]
 }
