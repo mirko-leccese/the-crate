@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+import numpy as np
 import pandas as pd
 from flask import Flask, render_template, request, jsonify, Response
 
@@ -844,6 +845,13 @@ def classifiche():
 
     # Apply filters
     filtered = df.copy()
+
+    # cultural_weight: masterpiece track count amplified by album age — older classics rank higher
+    current_year = datetime.today().year
+    filtered["cultural_weight"] = filtered["Masterpiece Tracks"].fillna(0) * np.log(
+        1 + (current_year - filtered["Release Year"].fillna(current_year))
+    )
+
     if selected_language:
         filtered = filtered[filtered["Language"] == selected_language]
     if selected_year != "all":
@@ -853,10 +861,10 @@ def classifiche():
         except (ValueError, TypeError):
             selected_year = "all"
 
-    # Rank by score (same sort order used globally) and take top 200
+    # Rank by score and take top 200
     top200 = filtered.sort_values(
-        by=["Score", "Lyrics/Novelty", "Production", "Masterpiece Tracks", "Name"],
-        ascending=[False, False, False, False, True],
+        by=["Score", "Production", "Lyrics/Novelty", "cultural_weight"],
+        ascending=[False, False, False, False],
     ).head(200)
 
     albums = [_row_to_dict(row) for _, row in top200.iterrows()]
