@@ -4,43 +4,16 @@
 {% block content %}
 <div id="home-content">
 
-<div class="page-header">
-  <h1 class="page-title">The Crate</h1>
-</div>
-
 {% if error %}
 <div class="error-banner">{{ error }}</div>
 {% else %}
 
-<!-- Stat cards -->
-<div class="stat-cards">
-  <div class="stat-card">
-    <div class="stat-card__value stat-card__value--dark">{{ n_albums }}</div>
-    <div class="stat-card__label">Album totali</div>
-    {% if added_this_year %}
-    <div class="stat-card__sub {% if added_this_year > 0 %}delta-pos{% elif added_this_year < 0 %}delta-neg{% endif %}">{% if added_this_year > 0 %}↑ {% elif added_this_year < 0 %}↓ {% endif %}{{ added_this_year }} quest'anno</div>
-    {% endif %}
-    {% if pct_albums_change is not none %}
-    <div class="stat-card__sub {% if pct_albums_change > 0 %}delta-pos{% elif pct_albums_change < 0 %}delta-neg{% endif %}">{% if pct_albums_change > 0 %}↑ {% elif pct_albums_change < 0 %}↓ {% endif %}{% if pct_albums_change > 0 %}+{% endif %}{{ pct_albums_change }}% vs {{ prev_year }}</div>
-    {% endif %}
-  </div>
-  <div class="stat-card">
-    <div class="stat-card__value stat-card__value--dark">{{ n_artists }}</div>
-    <div class="stat-card__label">Artisti diversi</div>
-    {% if delta_artists_added is not none %}
-    <div class="stat-card__sub {% if delta_artists_added > 0 %}delta-pos{% elif delta_artists_added < 0 %}delta-neg{% endif %}">{% if delta_artists_added > 0 %}↑ {% elif delta_artists_added < 0 %}↓ {% endif %}{% if delta_artists_added > 0 %}+{% endif %}{{ delta_artists_added }} vs {{ prev_year }}</div>
-    {% endif %}
-    {% if pct_artists_change is not none %}
-    <div class="stat-card__sub {% if pct_artists_change > 0 %}delta-pos{% elif pct_artists_change < 0 %}delta-neg{% endif %}">{% if pct_artists_change > 0 %}↑ {% elif pct_artists_change < 0 %}↓ {% endif %}{% if pct_artists_change > 0 %}+{% endif %}{{ pct_artists_change }}%</div>
-    {% endif %}
-  </div>
-  <div class="stat-card stat-card--hide-mobile">
-    <div class="stat-card__value stat-card__value--dark">{{ n_genres }}</div>
-    <div class="stat-card__label">Generi</div>
-  </div>
-  <div class="stat-card stat-card--hide-mobile">
-    <div class="stat-card__value stat-card__value--dark">{% if avg_score %}{{ avg_score }}{% else %}—{% endif %}</div>
-    <div class="stat-card__label">Voto medio</div>
+<!-- Hero -->
+<div class="page-header">
+  <h1 class="page-title">The Crate</h1>
+  <p class="shelf__subtitle" style="font-style: italic; margin-top: 0.5rem;">"Trova il disco che stavi cercando senza saperlo."</p>
+  <div style="margin-top: 1.25rem;">
+    <a href="{{ url_for('scopri') }}" class="btn btn--primary">Trova il tuo prossimo disco →</a>
   </div>
 </div>
 
@@ -63,7 +36,7 @@
 <section class="shelf">
   <div class="shelf__header shelf__header--row">
     <div>
-      <h2 class="shelf__title">Hot New Releases dall'Italia</h2>
+      <h2 class="shelf__title">Appena nel crate — Italia</h2>
       <p class="shelf__subtitle">Tra le milioni di uscite del venerdì, ci sarà qualcosa di interessante anche stavolta 😈?</p>
     </div>
     <a class="shelf__see-all" href="{{ url_for('archivio') }}?lingua=Italiano&sort=created{% if italia_anno_min %}&anno_min={{ italia_anno_min }}{% endif %}{% if italia_anno_max %}&anno_max={{ italia_anno_max }}{% endif %}">Esplora →</a>
@@ -101,7 +74,7 @@
 <section class="shelf">
   <div class="shelf__header shelf__header--row">
     <div>
-      <h2 class="shelf__title">Hot New Releases dal Mondo</h2>
+      <h2 class="shelf__title">Appena nel crate — Mondo</h2>
       <p class="shelf__subtitle">Il mondo là fuori fa musica — ogni tanto ne vale la pena ascoltarla.</p>
     </div>
     <a class="shelf__see-all" href="{{ url_for('archivio') }}?{% for l in non_italian_languages %}lingua={{ l | urlencode }}&{% endfor %}sort=created{% if mondo_anno_min %}&anno_min={{ mondo_anno_min }}{% endif %}{% if mondo_anno_max %}&anno_max={{ mondo_anno_max }}{% endif %}">Esplora →</a>
@@ -202,6 +175,47 @@
   </div>
 </section>
 {% endif %}
+
+<!-- Stat cards -->
+<hr class="section-divider">
+<div class="stat-cards">
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ n_albums }}</div>
+    <div class="stat-card__label">Album totali</div>
+    {% if added_this_year %}
+    <div class="stat-card__sub {% if added_this_year > 0 %}delta-pos{% elif added_this_year < 0 %}delta-neg{% endif %}">{% if added_this_year > 0 %}↑ {% elif added_this_year < 0 %}↓ {% endif %}{{ added_this_year }} quest'anno</div>
+    {% endif %}
+    {% if pct_albums_change is not none %}
+    <div class="stat-card__sub {% if pct_albums_change > 0 %}delta-pos{% elif pct_albums_change < 0 %}delta-neg{% endif %}">{% if pct_albums_change > 0 %}↑ {% elif pct_albums_change < 0 %}↓ {% endif %}{% if pct_albums_change > 0 %}+{% endif %}{{ pct_albums_change }}% vs {{ prev_year }}</div>
+    {% endif %}
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value stat-card__value--dark">{{ n_artists }}</div>
+    <div class="stat-card__label">Artisti diversi</div>
+    {% if delta_artists_added is not none %}
+    <div class="stat-card__sub {% if delta_artists_added > 0 %}delta-pos{% elif delta_artists_added < 0 %}delta-neg{% endif %}">{% if delta_artists_added > 0 %}↑ {% elif delta_artists_added < 0 %}↓ {% endif %}{% if delta_artists_added > 0 %}+{% endif %}{{ delta_artists_added }} vs {{ prev_year }}</div>
+    {% endif %}
+    {% if pct_artists_change is not none %}
+    <div class="stat-card__sub {% if pct_artists_change > 0 %}delta-pos{% elif pct_artists_change < 0 %}delta-neg{% endif %}">{% if pct_artists_change > 0 %}↑ {% elif pct_artists_change < 0 %}↓ {% endif %}{% if pct_artists_change > 0 %}+{% endif %}{{ pct_artists_change }}%</div>
+    {% endif %}
+  </div>
+  <div class="stat-card stat-card--hide-mobile">
+    <div class="stat-card__value stat-card__value--dark">{{ n_genres }}</div>
+    <div class="stat-card__label">Generi</div>
+  </div>
+  <div class="stat-card stat-card--hide-mobile">
+    <div class="stat-card__value stat-card__value--dark">{% if avg_score %}{{ avg_score }}{% else %}—{% endif %}</div>
+    <div class="stat-card__label">Voto medio</div>
+  </div>
+</div>
+
+<!-- Per saperne di più -->
+<hr class="section-divider">
+<div class="shelf__header">
+  <h2 class="shelf__title">Per saperne di più</h2>
+  <p class="shelf__subtitle">The Crate è un archivio personale di ascolti. Non una testata, non un algoritmo, non una playlist curata da chi vuole sembrare interessante. Ogni disco ha un punteggio costruito su cinque dimensioni sonore — energia, emozione, densità, temperatura, spazio — perché "mi è piaciuto" non è ancora una recensione. Puoi usarlo per scoprire musica che suona come la immagini, seguire le ultime uscite filtrate dal rumore di fondo, o controllare cosa penso di un disco che già conosci. Una recensione in più sul web. Ma forse quella giusta.</p>
+  <p class="shelf__subtitle" style="margin-top: 0.75rem;">Curioso di sapere come funziona tutto questo? <a href="{{ url_for('perche') }}">Perché →</a></p>
+</div>
 
 {% endif %}
 </div>{# /home-content #}

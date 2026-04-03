@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Scopri — The Crate{% endblock %}
+{% block meta_description %}Crateometro: disegna il tuo profilo sonoro ideale e scopri l'album perfetto per te.{% endblock %}
+
+{% block content %}
+<div class="scopri-page">
+
+  {% if from_home %}
+  <div class="album-detail-nav">
+    <a href="#" class="detail-back" onclick="if(history.length > 1){ history.back(); } else { window.location.href='{{ url_for('index') }}'; } return false;">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Indietro
+    </a>
+  </div>
+  {% endif %}
+
+  <div class="scopri-header">
+    <h1 class="scopri-title">Crateometro</h1>
+    <p class="scopri-desc">Disegna il tuo suono ideale. Il Crate trova l'album.</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('scopri') }}" id="crateometroForm">
+
+    <!-- Two-column row: radar chart left, sliders right -->
+    <div class="scopri-body">
+
+      <!-- Left column: dimension sliders -->
+      <div class="scopri-controls-col">
+        <div class="scopri-dims">
+          {% for field, label in dimensions %}
+          {% set dim_idx = loop.index0 %}
+          <div class="dim-control">
+            <span class="dim-label">{{ label }}</span>
+            <input type="range"
+                   class="dim-slider"
+                   min="1" max="5" step="1"
+                   value="{{ user_values[field] }}"
+                   name="{{ field }}"
+                   data-dim-idx="{{ dim_idx }}"
+                   id="dim_{{ dim_idx }}">
+            <span class="dim-value" id="dim_val_{{ dim_idx }}">{{ user_values[field] }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Right column: radar chart -->
+      <div class="scopri-chart-col">
+        <canvas id="crateometroChart" width="400" height="300"></canvas>
+      </div>
+
+    </div><!-- /.two-column row -->
+
+    <!-- Cerca button: below the two-column row -->
+    <button type="submit" class="scopri-submit">Cerca</button>
+
+  </form>
+
+  <!-- Results grid — shown after a search -->
+  {% if submitted %}
+  <div class="scopri-results">
+    {% if results %}
+    <p class="scopri-results__label">{{ results | length }} risultati — dal più vicino al tuo profilo</p>
+    <div class="scopri-grid">
+      {% for album in results %}
+      <a class="scopri-card{% if loop.first %} scopri-card--best{% endif %}"
+         href="{{ url_for('album_detail', slug=album.slug) }}">
+        <div class="scopri-card__cover">
+          {% if album.cover_url %}
+          <img src="{{ album.cover_url }}" loading="lazy" alt="">
+          {% else %}
+          <div class="scopri-card__cover-placeholder"></div>
+          {% endif %}
+          {% if album.energy and album.emotional_weight and album.density and album.temperature and album.vastness %}
+          <div class="scopri-card__radar-overlay">
+            <canvas class="scopri-card__radar-canvas"
+                    data-energy="{{ album.energy }}"
+                    data-emotional-weight="{{ album.emotional_weight }}"
+                    data-density="{{ album.density }}"
+                    data-temperature="{{ album.temperature }}"
+                    data-vastness="{{ album.vastness }}"></canvas>
+          </div>
+          {% endif %}
+        </div>
+        <div class="scopri-card__info">
+          <div class="scopri-card__artist">{{ album.artist }}</div>
+          <div class="scopri-card__title">{{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}</div>
+          <div class="scopri-card__meta">
+            {% if album.score %}<span class="scopri-card__score">{{ album.score | int }}</span>{% endif %}
+            {% if album.unique_genre %}<span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
+          </div>
+          <div class="compat-bar-wrap">
+            <div class="compat-bar">
+              <div class="compat-bar__fill" style="width: {{ album.compat_pct }}%"></div>
+            </div>
+            <span class="compat-pct">{{ album.compat_pct }}%</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="scopri-no-result">Mi dispiace, non ci sono album compatibili con il Crateometro :(</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div><!-- /.scopri-page -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  // Single source of truth for current dimension values.
+  // Initialised from server-rendered user_values so the POST→redirect state is preserved.
+  var values = [
+    {{ user_values['Energy'] }},
+    {{ user_values['Emotional Weight'] }},
+    {{ user_values['Density'] }},
+    {{ user_values['Temperature'] }},
+    {{ user_values['Vastness'] }}
+  ];
+
+  var labels = ['Energia', 'Emozione', 'Densità', 'Temperatura', 'Spazio'];
+
+  // Shared radar scale/style options (matches album_detail.html exactly).
+  var scaleOpts = {
+    min: 0,
+    max: 5,
+    ticks: { stepSize: 1, display: false },
+    grid: { color: 'rgba(56, 132, 220, 0.2)' },
+    angleLines: { color: 'rgba(56, 132, 220, 0.25)' },
+    pointLabels: {
+      font: { family: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", size: 12 },
+      color: '#666666'
+    }
+  };
+
+  // Compact scale options for the mini hover radars (smaller font).
+  var scaleOptsMini = {
+    min: 0,
+    max: 5,
+    ticks: { stepSize: 1, display: false },
+    grid: { color: 'rgba(56, 132, 220, 0.2)' },
+    angleLines: { color: 'rgba(56, 132, 220, 0.25)' },
+    pointLabels: {
+      font: { family: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", size: 8 },
+      color: '#666666'
+    }
+  };
+
+  var inputChart = null;
+
+  // Update a dimension value: keep values[] in sync, update hidden input and label,
+  // and redraw the main radar chart.
+  function setDimValue(dimIndex, val) {
+    values[dimIndex] = val;
+    var valEl = document.getElementById('dim_val_' + dimIndex);
+    if (valEl) valEl.textContent = val;
+    if (inputChart) {
+      inputChart.data.datasets[0].data = values.slice();
+      inputChart.update();
+    }
+  }
+
+  // Attach input event listeners to all range sliders.
+  document.querySelectorAll('.dim-slider').forEach(function(slider) {
+    slider.addEventListener('input', function() {
+      setDimValue(parseInt(this.dataset.dimIdx, 10), parseInt(this.value, 10));
+    });
+  });
+
+  // Build the main user-profile radar chart and, once Chart.js is loaded,
+  // initialise hover radars on all result cards.
+  function buildInputChart() {
+    var canvas = document.getElementById('crateometroChart');
+    if (!canvas) return;
+
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    s.onload = function () {
+      inputChart = new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Il tuo profilo',
+            data: values.slice(),
+            tension: 0.4,
+            backgroundColor: 'rgba(56, 132, 220, 0.15)',
+            borderColor: 'rgba(56, 132, 220, 0.85)',
+            pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
+            pointRadius: 4,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: { r: scaleOpts },
+          plugins: { legend: { display: false } },
+          animation: { duration: 200 }
+        }
+      });
+
+      // Chart.js is now loaded — wire up hover radars on result cards.
+      initCardHovers();
+    };
+    document.head.appendChild(s);
+  }
+
+  // Lazily create a mini dual-profile radar (user vs album) on each result card.
+  // The chart is created on first mouseenter and then reused, so Chart instances
+  // are not created for cards the user never hovers.
+  function initCardHovers() {
+    document.querySelectorAll('.scopri-card').forEach(function(card) {
+      var chartCreated = false;
+      card.addEventListener('mouseenter', function() {
+        if (chartCreated) return;
+        var canvas = card.querySelector('.scopri-card__radar-canvas');
+        if (!canvas) return;
+        chartCreated = true;
+
+        new Chart(canvas, {
+          type: 'radar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Tu',
+                data: values.slice(),
+                tension: 0.4,
+                backgroundColor: 'rgba(56, 132, 220, 0.15)',
+                borderColor: 'rgba(56, 132, 220, 0.85)',
+                pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
+                pointRadius: 3,
+              },
+              {
+                label: 'Album',
+                data: [
+                  parseInt(canvas.dataset.energy, 10),
+                  parseInt(canvas.dataset.emotionalWeight, 10),
+                  parseInt(canvas.dataset.density, 10),
+                  parseInt(canvas.dataset.temperature, 10),
+                  parseInt(canvas.dataset.vastness, 10),
+                ],
+                tension: 0.4,
+                backgroundColor: 'rgba(232, 160, 32, 0.18)',
+                borderColor: 'rgba(232, 160, 32, 0.90)',
+                pointBackgroundColor: 'rgba(232, 160, 32, 0.90)',
+                pointRadius: 3,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            animation: { duration: 0 },
+            scales: { r: scaleOptsMini },
+            plugins: { legend: { display: false } }
+          }
+        });
+      });
+    });
+  }
+
+  buildInputChart();
+})();
+</script>
+{% endblock %}

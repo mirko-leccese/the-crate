@@ -4,11 +4,11 @@ import os
 import random as _random
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import numpy as np
 import pandas as pd
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, session, redirect, url_for
 
 try:
     from dotenv import load_dotenv
@@ -19,6 +19,7 @@ except ImportError:
 import sqlite3
 
 from libs.utils import Utils, slugify, get_album_of_the_day
+from libs.algo import euclidean_match
 from libs.streaming_links import spotify_search_url, apple_music_search_url
 from libs.stats import (
     get_latest_release_year,
@@ -35,6 +36,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+# Secret key required for Flask session (signed cookies).
+# Set SECRET_KEY in the environment in production.
+app.secret_key = os.environ.get("SECRET_KEY", "crateometro-dev-key-change-in-prod")
 
 @app.context_processor
 def inject_analytics():
@@ -877,6 +881,85 @@ def classifiche():
         years=years,
         selected_language=selected_language,
         selected_year=selected_year,
+    )
+
+
+@app.route("/scopri", methods=["GET", "POST"])
+def scopri():
+    df = get_data()
+
+    # The 5 dimension field names and their Italian frontend labels (same order as radar chart)
+    DIMENSIONS = [
+        ("Energy",          "Energia"),
+        ("Emotional Weight","Emozione"),
+        ("Density",         "Densità"),
+        ("Temperature",     "Temperatura"),
+        ("Vastness",        "Spazio"),
+    ]
+
+    if request.method == "POST":
+        # ---------- Post/Redirect/Get pattern ----------
+        # All state is stored in the session; we then redirect to GET so that
+        # the browser never holds a POST response in history — eliminating
+        # ERR_CACHE_MISS when the user navigates back from the album detail page.
+
+        user_values = {}
+        for field, _ in DIMENSIONS:
+            try:
+                v = int(request.form.get(field, 3))
+                user_values[field] = max(1, min(5, v))
+            except (ValueError, TypeError):
+                user_values[field] = 3
+
+        matches = euclidean_match(user_values, df) if not df.empty else []
+
+        # Store only the lightweight metadata (slug + distance metrics) in the
+        # session cookie to keep its payload small.
+        session["crateometro_results_meta"] = matches
+        session["crateometro_user_values"] = user_values
+        session["crateometro_submitted"] = True
+
+        return redirect(url_for("scopri"))
+
+    # ---------- GET handler ----------
+    # Reads all result state from the session.  When the user navigates back
+    # from the album detail page, the session still holds the previous results.
+
+    default_values = {field: 3 for field, _ in DIMENSIONS}
+    submitted = session.get("crateometro_submitted", False)
+    user_values = session.get("crateometro_user_values", default_values)
+
+    results = []
+    if submitted and not df.empty:
+        for meta in session.get("crateometro_results_meta", []):
+            row_match = df[df["slug"] == meta["slug"]]
+            if not row_match.empty:
+                album = _row_to_dict(row_match.iloc[0])
+                album["compat_pct"] = meta["compatibility_pct"]
+                album["distance"] = meta["distance"]
+                results.append(album)
+
+    # Detect whether the user arrived from the home page so the template can
+    # show a back button.  The flag is stored in the session so it survives
+    # the POST → redirect → GET cycle that follows a "Cerca" click.
+    referrer_path = urlparse(request.referrer or "").path
+    home_path = url_for("index")
+    scopri_path = url_for("scopri")
+    if referrer_path == home_path:
+        session["crateometro_from_home"] = True
+    elif referrer_path and referrer_path != scopri_path:
+        # Came from somewhere other than home or this page: clear the flag.
+        session.pop("crateometro_from_home", None)
+    # If referrer is /scopri (POST → redirect): preserve the existing flag.
+    from_home = session.get("crateometro_from_home", False)
+
+    return render_template(
+        "scopri.html",
+        dimensions=DIMENSIONS,
+        user_values=user_values,
+        results=results,
+        submitted=submitted,
+        from_home=from_home,
     )
 
 
