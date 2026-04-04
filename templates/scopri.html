@@ -89,8 +89,9 @@
           <div class="scopri-card__title">{{ album.name }}{% if album.release_year %} ({{ album.release_year }}){% endif %}</div>
           <div class="scopri-card__meta">
             {% if album.score %}<span class="scopri-card__score">{{ album.score | int }}</span>{% endif %}
-            {% if album.unique_genre %}<span class="genre-tag genre-tag--gray">{{ album.unique_genre }}</span>{% endif %}
+            {% if album.unique_genre %}<span class="genre-tag">{{ album.unique_genre }}</span>{% endif %}
           </div>
+          <div class="album-card__score-meta">Compatibilità:</div>
           <div class="compat-bar-wrap">
             <div class="compat-bar">
               <div class="compat-bar__fill" style="width: {{ album.compat_pct }}%"></div>
