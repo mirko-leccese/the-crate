@@ -2025,10 +2025,6 @@ a.shelf-card__poster {
   .scopri-submit {
     width: 100%;
   }
-
-  .scopri-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* --- Scopri range sliders -------------------------------- */
@@ -2089,6 +2085,12 @@ a.shelf-card__poster {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .scopri-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Scopri result card ---------------------------------- */
