@@ -2230,3 +2230,148 @@ a.shelf-card__poster {
   white-space: nowrap;
 }
 
+/* ==========================================================
+   Crateometro — album seed selection block
+   ========================================================== */
+
+.scopri-seed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.scopri-seed__select {
+  flex: 1;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  min-width: 0;
+}
+
+.scopri-seed__select:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.scopri-seed__random {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.scopri-seed__random:hover {
+  background: var(--bg-muted);
+  border-color: var(--blue);
+}
+
+/* ==========================================================
+   Crateometro — album preview block (radar + cover)
+   ========================================================== */
+
+.scopri-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.scopri-preview--hidden {
+  display: none;
+}
+
+/* Fixed-width chart column so the radar is compact and square */
+.scopri-preview__chart-col {
+  flex: 0 0 360px;
+  width: 360px;
+}
+
+.scopri-preview__chart-col canvas {
+  display: block;
+  width: 100%;
+}
+
+.scopri-preview__cover-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.scopri-preview__cover-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+}
+
+.scopri-preview__cover-img--hidden {
+  display: none;
+}
+
+.scopri-preview__cover-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+}
+
+.scopri-preview__meta-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scopri-preview__meta-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.scopri-preview__meta-year {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Mobile — stack seed row and preview block vertically */
+@media (max-width: 640px) {
+  .scopri-seed {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .scopri-seed__random {
+    width: 100%;
+    text-align: center;
+  }
+
+  .scopri-preview {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .scopri-preview__chart-col {
+    flex: none;
+    width: 100%;
+    max-width: 360px;
+  }
+}
+

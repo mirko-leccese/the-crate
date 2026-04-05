@@ -16,51 +16,92 @@
   </div>
   {% endif %}
 
+  <!-- 1. Header block -->
   <div class="scopri-header">
     <h1 class="scopri-title">Crateometro</h1>
-    <p class="scopri-desc">Disegna il tuo suono ideale. Il Crate trova l'album.</p>
+    <p class="scopri-desc">Non cercare per genere. Non cercare per artista. Cerca per <em>suono</em>.</p>
+    <p class="scopri-desc">
+      Il Crateometro è uno strumento di scoperta basato su cinque dimensioni soniche. Non descrivono il genere di un disco, ma la sua impronta sonora — come suona, e come ti fa sentire. Costruisci il profilo del disco che hai in testa muovendo i cursori, e lascia che l'archivio trovi i più vicini.
+    </p>
+    <h3>Le cinque dimensioni</h3>
+    <ul>
+      <li><strong>Energia</strong> — da un ascolto quieto e statico a qualcosa di adrenalinico e travolgente</li>
+      <li><strong>Emozione</strong> — da un sottofondo leggero senza pretese a qualcosa di intimo e toccante</li>
+      <li><strong>Densità</strong> — da un suono minimale e spoglio a una produzione stratificata e ricca di layer</li>
+      <li><strong>Temperatura</strong> — da atmosfere fredde e distaccate a qualcosa di caldo e sensorialmente avvolgente</li>
+      <li><strong>Spazio</strong> — da un suono raccolto e interiore a paesaggi sonori aperti e sconfinati</li>
+    </ul>
+    <p class="scopri-desc">
+      Una cosa da aspettarsi: i risultati possono sorprenderti per varietà. Le dimensioni descrivono l'impronta sonora, non il genere — e la stessa impronta può appartenere a dischi molto diversi. Un album pop e un disco R&amp;B possono essere ugualmente caldi ed emotivi. Un pezzo di metal e un brano ambient possono condividere la stessa densità e la stessa vastità. È parte del gioco.
+    </p>
+    <p class="scopri-desc"><em>Scegli un album di partenza per usarlo come riferimento, oppure premi 🎲 per una scelta casuale. Poi regola i cursori e premi Cerca.</em></p>
   </div>
 
-  <form method="POST" action="{{ url_for('scopri') }}" id="crateometroForm">
+  <!-- 2. Album selection block -->
+  {% if eligible_albums %}
+  <div class="scopri-seed">
+    <input type="text"
+           id="scopriAlbumInput"
+           class="scopri-seed__select"
+           list="scopriAlbumList"
+           placeholder="Cerca per titolo o artista…"
+           autocomplete="off">
+    <datalist id="scopriAlbumList">
+      {% for album in eligible_albums %}
+      <option value="{{ album.title }} – {{ album.artist }}"></option>
+      {% endfor %}
+    </datalist>
+    <button type="button" id="scopriRandomBtn" class="scopri-seed__random">🎲 Scelta Casuale</button>
+  </div>
+  {% endif %}
 
-    <!-- Two-column row: radar chart left, sliders right -->
-    <div class="scopri-body">
+  <!-- 3. Album preview block (hidden until an album is selected) -->
+  <div class="scopri-preview scopri-preview--hidden" id="scopriPreview">
+    <div class="scopri-preview__chart-col">
+      <canvas id="crateometroChart" width="400" height="400"></canvas>
+    </div>
+    <div class="scopri-preview__cover-col">
+      <img id="scopriCoverImg" class="scopri-preview__cover-img" src="" alt="" loading="lazy">
+      <div>
+        <div class="scopri-preview__meta-title" id="scopriMetaTitle"></div>
+        <div class="scopri-preview__meta-artist" id="scopriMetaArtist"></div>
+        <div class="scopri-preview__meta-year" id="scopriMetaYear"></div>
+      </div>
+    </div>
+  </div>
 
-      <!-- Left column: dimension sliders -->
-      <div class="scopri-controls-col">
-        <div class="scopri-dims">
-          {% for field, label in dimensions %}
-          {% set dim_idx = loop.index0 %}
-          <div class="dim-control">
-            <span class="dim-label">{{ label }}</span>
-            <input type="range"
-                   class="dim-slider"
-                   min="1" max="5" step="1"
-                   value="{{ user_values[field] }}"
-                   name="{{ field }}"
-                   data-dim-idx="{{ dim_idx }}"
-                   id="dim_{{ dim_idx }}">
-            <span class="dim-value" id="dim_val_{{ dim_idx }}">{{ user_values[field] }}</span>
-          </div>
-          {% endfor %}
+  <!-- 4 + 5. Sliders and Cerca button (inside form) -->
+  <form id="crateometroForm" action="javascript:void(0)">
+
+    <div class="scopri-controls-col">
+      <div class="scopri-dims">
+        {% for field, label in dimensions %}
+        {% set dim_idx = loop.index0 %}
+        <div class="dim-control">
+          <span class="dim-label">{{ label }}</span>
+          <input type="range"
+                 class="dim-slider"
+                 min="1" max="5" step="1"
+                 value="{{ user_values[field] }}"
+                 name="{{ field }}"
+                 data-dim-idx="{{ dim_idx }}"
+                 id="dim_{{ dim_idx }}">
+          <span class="dim-value" id="dim_val_{{ dim_idx }}">{{ user_values[field] }}</span>
         </div>
+        {% endfor %}
       </div>
+    </div>
 
-      <!-- Right column: radar chart -->
-      <div class="scopri-chart-col">
-        <canvas id="crateometroChart" width="400" height="300"></canvas>
-      </div>
+    <!-- Hidden field: carries the seed album id (slug) to the POST handler -->
+    <input type="hidden" id="seedAlbumId" name="seed_album_id" value="">
 
-    </div><!-- /.two-column row -->
-
-    <!-- Cerca button: below the two-column row -->
     <button type="submit" class="scopri-submit">Cerca</button>
 
   </form>
 
-  <!-- Results grid — shown after a search -->
+  <!-- 6. Results grid — shown after a search; id used by AJAX handler -->
   {% if submitted %}
-  <div class="scopri-results">
+  <div id="scopriResults" class="scopri-results">
     {% if results %}
     <p class="scopri-results__label">{{ results | length }} risultati — dal più vicino al tuo profilo</p>
     <div class="scopri-grid">
@@ -114,8 +155,8 @@
 {% block scripts %}
 <script>
 (function () {
-  // Single source of truth for current dimension values.
-  // Initialised from server-rendered user_values so the POST→redirect state is preserved.
+  // ── State ─────────────────────────────────────────────────────────────────
+  // Live slider values — updated on every slider input event.
   var values = [
     {{ user_values['Energy'] }},
     {{ user_values['Emotional Weight'] }},
@@ -124,12 +165,39 @@
     {{ user_values['Vastness'] }}
   ];
 
+  // Slider snapshot captured at the exact moment Cerca is submitted.
+  // Initialised from server-rendered user_values so SSR result-card hovers
+  // (page load after full POST→GET) work correctly before any AJAX search.
+  var sliderSnapshot = values.slice();
+
+  // Sonic values of the currently seeded album.
+  var seedValues = [0, 0, 0, 0, 0];
+
   var labels = ['Energia', 'Emozione', 'Densità', 'Temperatura', 'Spazio'];
 
-  // Shared radar scale/style options (matches album_detail.html exactly).
+  // ── Lookup maps ───────────────────────────────────────────────────────────
+  var albumData = {{ eligible_albums | tojson if eligible_albums is defined else '[]' }};
+  var albumById    = {};
+  var albumByLabel = {};
+  albumData.forEach(function(a) {
+    albumById[a.id] = a;
+    albumByLabel[a.title + ' \u2013 ' + a.artist] = a;
+  });
+
+  // ── DOM references ────────────────────────────────────────────────────────
+  var previewBlock  = document.getElementById('scopriPreview');
+  var coverImg      = document.getElementById('scopriCoverImg');
+  var metaTitle     = document.getElementById('scopriMetaTitle');
+  var metaArtist    = document.getElementById('scopriMetaArtist');
+  var metaYear      = document.getElementById('scopriMetaYear');
+  var albumInput    = document.getElementById('scopriAlbumInput');
+  var seedField     = document.getElementById('seedAlbumId');
+  var randomBtn     = document.getElementById('scopriRandomBtn');
+  var form          = document.getElementById('crateometroForm');
+
+  // ── Chart.js scale options ────────────────────────────────────────────────
   var scaleOpts = {
-    min: 0,
-    max: 5,
+    min: 0, max: 5,
     ticks: { stepSize: 1, display: false },
     grid: { color: 'rgba(56, 132, 220, 0.2)' },
     angleLines: { color: 'rgba(56, 132, 220, 0.25)' },
@@ -139,10 +207,8 @@
     }
   };
 
-  // Compact scale options for the mini hover radars (smaller font).
   var scaleOptsMini = {
-    min: 0,
-    max: 5,
+    min: 0, max: 5,
     ticks: { stepSize: 1, display: false },
     grid: { color: 'rgba(56, 132, 220, 0.2)' },
     angleLines: { color: 'rgba(56, 132, 220, 0.25)' },
@@ -154,27 +220,217 @@
 
   var inputChart = null;
 
-  // Update a dimension value: keep values[] in sync, update hidden input and label,
-  // and redraw the main radar chart.
-  function setDimValue(dimIndex, val) {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Returns the results container, creating and appending it if absent.
+  function getOrCreateResultsEl() {
+    var el = document.getElementById('scopriResults');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'scopriResults';
+      el.className = 'scopri-results';
+      var page = document.querySelector('.scopri-page');
+      if (page) page.appendChild(el);
+    }
+    return el;
+  }
+
+  // ── setDimValue ────────────────────────────────────────────────────────────
+  // Updates values[], slider UI and label.
+  // Refreshes only Dataset 1 (orange slider curve) unless skipChartUpdate=true.
+  function setDimValue(dimIndex, val, skipChartUpdate) {
     values[dimIndex] = val;
     var valEl = document.getElementById('dim_val_' + dimIndex);
     if (valEl) valEl.textContent = val;
-    if (inputChart) {
-      inputChart.data.datasets[0].data = values.slice();
+    var slider = document.getElementById('dim_' + dimIndex);
+    if (slider) slider.value = val;
+    if (!skipChartUpdate && inputChart) {
+      inputChart.data.datasets[1].data = values.slice();
       inputChart.update();
     }
   }
 
-  // Attach input event listeners to all range sliders.
+  // ── seedAlbum ─────────────────────────────────────────────────────────────
+  function seedAlbum(album) {
+    seedValues = [
+      album.energy, album.emotional_weight, album.density,
+      album.temperature, album.vastness
+    ];
+
+    setDimValue(0, album.energy,           true);
+    setDimValue(1, album.emotional_weight, true);
+    setDimValue(2, album.density,          true);
+    setDimValue(3, album.temperature,      true);
+    setDimValue(4, album.vastness,         true);
+
+    if (inputChart) {
+      inputChart.data.datasets[0].data = seedValues.slice();
+      inputChart.data.datasets[1].data = values.slice();
+      inputChart.update();
+    }
+
+    if (coverImg) {
+      if (album.cover_url) {
+        coverImg.src = album.cover_url;
+        coverImg.alt = album.title + ' \u2013 ' + album.artist;
+        coverImg.classList.remove('scopri-preview__cover-img--hidden');
+      } else {
+        coverImg.src = '';
+        coverImg.classList.add('scopri-preview__cover-img--hidden');
+      }
+    }
+
+    if (metaTitle)  metaTitle.textContent  = album.title;
+    if (metaArtist) metaArtist.textContent = album.artist;
+    if (metaYear)   metaYear.textContent   = album.year ? String(album.year) : '';
+
+    if (previewBlock) previewBlock.classList.remove('scopri-preview--hidden');
+    if (seedField)    seedField.value = album.id;
+
+    try { sessionStorage.setItem('crateometro_album_id', album.id); } catch (e) {}
+  }
+
+  // ── Slider listeners ──────────────────────────────────────────────────────
   document.querySelectorAll('.dim-slider').forEach(function(slider) {
     slider.addEventListener('input', function() {
       setDimValue(parseInt(this.dataset.dimIdx, 10), parseInt(this.value, 10));
     });
   });
 
-  // Build the main user-profile radar chart and, once Chart.js is loaded,
-  // initialise hover radars on all result cards.
+  // ── Datalist input ────────────────────────────────────────────────────────
+  function onAlbumInput() {
+    var album = albumByLabel[this.value];
+    if (album) seedAlbum(album);
+  }
+  if (albumInput) {
+    albumInput.addEventListener('change', onAlbumInput);
+    albumInput.addEventListener('input',  onAlbumInput);
+  }
+
+  // ── Random album button ───────────────────────────────────────────────────
+  if (randomBtn) {
+    randomBtn.addEventListener('click', function() {
+      randomBtn.disabled = true;
+      fetch('/scopri/random-album')
+        .then(function(res) { return res.json(); })
+        .then(function(album) {
+          if (album && album.id) {
+            seedAlbum(album);
+            if (albumInput) albumInput.value = album.title + ' \u2013 ' + album.artist;
+          }
+        })
+        .catch(function() {})
+        .finally(function() { randomBtn.disabled = false; });
+    });
+  }
+
+  // ── renderResults ─────────────────────────────────────────────────────────
+  // Rebuilds the results container from a JSON album array, then re-wires
+  // the card hover radars and re-syncs the preview radar's orange curve.
+  function renderResults(results) {
+    var el = getOrCreateResultsEl();
+    if (!el) return;
+
+    if (!results || results.length === 0) {
+      el.innerHTML = '<p class="scopri-no-result">Mi dispiace, non ci sono album compatibili con il Crateometro :(</p>';
+      return;
+    }
+
+    var html = '<p class="scopri-results__label">'
+      + results.length + ' risultati \u2014 dal pi\u00f9 vicino al tuo profilo'
+      + '</p><div class="scopri-grid">';
+
+    results.forEach(function(album, i) {
+      var yearStr   = album.release_year ? ' (' + album.release_year + ')' : '';
+      var coverHtml = album.cover_url
+        ? '<img src="' + escHtml(album.cover_url) + '" loading="lazy" alt="">'
+        : '<div class="scopri-card__cover-placeholder"></div>';
+
+      var radarHtml = '';
+      if (album.energy && album.emotional_weight && album.density
+          && album.temperature && album.vastness) {
+        radarHtml = '<div class="scopri-card__radar-overlay">'
+          + '<canvas class="scopri-card__radar-canvas"'
+          + ' data-energy="' + album.energy + '"'
+          + ' data-emotional-weight="' + album.emotional_weight + '"'
+          + ' data-density="' + album.density + '"'
+          + ' data-temperature="' + album.temperature + '"'
+          + ' data-vastness="' + album.vastness + '">'
+          + '</canvas></div>';
+      }
+
+      var scoreHtml = album.score
+        ? '<span class="scopri-card__score">' + Math.floor(album.score) + '</span>' : '';
+      var genreHtml = album.unique_genre
+        ? '<span class="genre-tag">' + escHtml(album.unique_genre) + '</span>' : '';
+
+      html += '<a class="scopri-card' + (i === 0 ? ' scopri-card--best' : '') + '"'
+            + ' href="/album/' + escHtml(album.slug) + '">';
+      html += '<div class="scopri-card__cover">' + coverHtml + radarHtml + '</div>';
+      html += '<div class="scopri-card__info">';
+      html += '<div class="scopri-card__artist">' + escHtml(album.artist) + '</div>';
+      html += '<div class="scopri-card__title">' + escHtml(album.name) + escHtml(yearStr) + '</div>';
+      html += '<div class="scopri-card__meta">' + scoreHtml + genreHtml + '</div>';
+      html += '<div class="album-card__score-meta">Compatibilit\u00e0:</div>';
+      html += '<div class="compat-bar-wrap">'
+            + '<div class="compat-bar">'
+            + '<div class="compat-bar__fill" style="width:' + album.compat_pct + '%"></div>'
+            + '</div>'
+            + '<span class="compat-pct">' + album.compat_pct + '%</span>'
+            + '</div>';
+      html += '</div></a>';
+    });
+
+    html += '</div>';
+    el.innerHTML = html;
+
+    // Re-sync the preview radar's orange (slider) curve to the search-time snapshot.
+    if (inputChart) {
+      inputChart.data.datasets[1].data = sliderSnapshot.slice();
+      inputChart.update();
+    }
+
+    // Wire three-curve hover radars onto the newly injected cards.
+    initCardHovers();
+  }
+
+  // ── Form submit interceptor (AJAX) ────────────────────────────────────────
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      // Freeze slider values at the moment the user clicked Cerca.
+      sliderSnapshot = values.slice();
+
+      var el = getOrCreateResultsEl();
+      // Only show the loading placeholder when the container is empty (first
+      // search).  When results are already visible, replacing innerHTML with a
+      // single line collapses the grid and causes a jarring layout shift — skip
+      // it and let the grid update silently in place once the fetch resolves.
+      if (el && el.childElementCount === 0) {
+        el.innerHTML = '<p class="scopri-results__label">Ricerca in corso\u2026</p>';
+      }
+
+      fetch('/scopri/search', { method: 'POST', body: new FormData(form) })
+        .then(function(res) { return res.json(); })
+        .then(function(data) { renderResults(data.results); })
+        .catch(function() {
+          var el2 = getOrCreateResultsEl();
+          if (el2) {
+            el2.innerHTML = '<p class="scopri-no-result">Si \u00e8 verificato un errore. Riprova.</p>';
+          }
+        });
+    });
+  }
+
+  // ── buildInputChart ───────────────────────────────────────────────────────
   function buildInputChart() {
     var canvas = document.getElementById('crateometroChart');
     if (!canvas) return;
@@ -186,34 +442,58 @@
         type: 'radar',
         data: {
           labels: labels,
-          datasets: [{
-            label: 'Il tuo profilo',
-            data: values.slice(),
-            tension: 0.4,
-            backgroundColor: 'rgba(56, 132, 220, 0.15)',
-            borderColor: 'rgba(56, 132, 220, 0.85)',
-            pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
-            pointRadius: 4,
-          }]
+          datasets: [
+            {
+              label: 'Album scelto',
+              data: seedValues.slice(),
+              tension: 0.4,
+              backgroundColor: 'rgba(56, 132, 220, 0.15)',
+              borderColor: 'rgba(56, 132, 220, 0.85)',
+              pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
+              pointRadius: 4,
+              borderWidth: 2,
+            },
+            {
+              label: 'Il tuo profilo',
+              data: values.slice(),
+              tension: 0.4,
+              backgroundColor: 'rgba(249, 115, 22, 0.10)',
+              borderColor: 'rgba(249, 115, 22, 1)',
+              pointBackgroundColor: 'rgba(249, 115, 22, 1)',
+              pointRadius: 3,
+              borderWidth: 2,
+            }
+          ]
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
           scales: { r: scaleOpts },
-          plugins: { legend: { display: false } },
+          plugins: { legend: { display: true, position: 'bottom' } },
           animation: { duration: 200 }
         }
       });
 
-      // Chart.js is now loaded — wire up hover radars on result cards.
+      // Restore album selection from sessionStorage (survives full-page reloads).
+      try {
+        var savedId = sessionStorage.getItem('crateometro_album_id');
+        if (savedId && albumById[savedId]) {
+          var savedAlbum = albumById[savedId];
+          seedAlbum(savedAlbum);
+          if (albumInput) albumInput.value = savedAlbum.title + ' \u2013 ' + savedAlbum.artist;
+        }
+      } catch (e) {}
+
+      // Wire up hover radars for any server-rendered result cards.
       initCardHovers();
     };
     document.head.appendChild(s);
   }
 
-  // Lazily create a mini dual-profile radar (user vs album) on each result card.
-  // The chart is created on first mouseenter and then reused, so Chart instances
-  // are not created for cards the user never hovers.
+  // ── initCardHovers ────────────────────────────────────────────────────────
+  // Lazily creates a three-curve radar on each .scopri-card on first hover.
+  // Safe to call multiple times — each call operates on whatever .scopri-card
+  // elements exist in the DOM at that moment.
   function initCardHovers() {
     document.querySelectorAll('.scopri-card').forEach(function(card) {
       var chartCreated = false;
@@ -229,16 +509,27 @@
             labels: labels,
             datasets: [
               {
-                label: 'Tu',
-                data: values.slice(),
+                label: 'Album scelto',
+                data: seedValues.slice(),
                 tension: 0.4,
-                backgroundColor: 'rgba(56, 132, 220, 0.15)',
-                borderColor: 'rgba(56, 132, 220, 0.85)',
-                pointBackgroundColor: 'rgba(56, 132, 220, 0.85)',
-                pointRadius: 3,
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                borderColor: 'rgba(59, 130, 246, 0.8)',
+                pointBackgroundColor: 'rgba(59, 130, 246, 0.8)',
+                pointRadius: 2,
+                borderWidth: 1.5,
               },
               {
-                label: 'Album',
+                label: 'Il tuo profilo',
+                data: sliderSnapshot.slice(),
+                tension: 0.4,
+                backgroundColor: 'rgba(249, 115, 22, 0.08)',
+                borderColor: 'rgba(249, 115, 22, 0.9)',
+                pointBackgroundColor: 'rgba(249, 115, 22, 0.9)',
+                pointRadius: 2,
+                borderWidth: 1.5,
+              },
+              {
+                label: 'Album consigliato',
                 data: [
                   parseInt(canvas.dataset.energy, 10),
                   parseInt(canvas.dataset.emotionalWeight, 10),
@@ -247,9 +538,9 @@
                   parseInt(canvas.dataset.vastness, 10),
                 ],
                 tension: 0.4,
-                backgroundColor: 'rgba(232, 160, 32, 0.18)',
-                borderColor: 'rgba(232, 160, 32, 0.90)',
-                pointBackgroundColor: 'rgba(232, 160, 32, 0.90)',
+                backgroundColor: 'rgba(100, 116, 139, 0.15)',
+                borderColor: 'rgba(100, 116, 139, 1)',
+                pointBackgroundColor: 'rgba(100, 116, 139, 1)',
                 pointRadius: 3,
               }
             ]

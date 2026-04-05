@@ -913,6 +913,12 @@ def scopri():
 
         matches = euclidean_match(user_values, df) if not df.empty else []
 
+        # Post-process: remove the seed album from results so it doesn't appear
+        # as a recommendation when the user searched starting from that album.
+        seed_album_id = request.form.get("seed_album_id", "").strip() or None
+        if seed_album_id:
+            matches = [m for m in matches if m.get("slug") != seed_album_id]
+
         # Store only the lightweight metadata (slug + distance metrics) in the
         # session cookie to keep its payload small.
         session["crateometro_results_meta"] = matches
@@ -953,6 +959,27 @@ def scopri():
     # If referrer is /scopri (POST → redirect): preserve the existing flag.
     from_home = session.get("crateometro_from_home", False)
 
+    # Build eligible albums list for seed selector: all albums with all 5 sonic
+    # fields populated, sorted alphabetically by artist then title.
+    _sonic_fields = ["Energy", "Emotional Weight", "Density", "Temperature", "Vastness"]
+    eligible_albums = []
+    if not df.empty:
+        _mask = df[_sonic_fields].notna().all(axis=1)
+        _eligible_df = df[_mask].sort_values(["Artist", "Name"])
+        for _, _row in _eligible_df.iterrows():
+            eligible_albums.append({
+                "id": _safe_str(_row.get("slug")),
+                "title": _safe_str(_row.get("Name")),
+                "artist": _safe_str(_row.get("Artist")),
+                "year": int(_row["Release Year"]) if pd.notna(_row.get("Release Year")) else None,
+                "cover_url": _safe_str(_row.get("cover_url")),
+                "energy": int(_row["Energy"]),
+                "emotional_weight": int(_row["Emotional Weight"]),
+                "density": int(_row["Density"]),
+                "temperature": int(_row["Temperature"]),
+                "vastness": int(_row["Vastness"]),
+            })
+
     return render_template(
         "scopri.html",
         dimensions=DIMENSIONS,
@@ -960,7 +987,81 @@ def scopri():
         results=results,
         submitted=submitted,
         from_home=from_home,
+        eligible_albums=eligible_albums,
     )
+
+
+@app.route("/scopri/search", methods=["POST"])
+def scopri_search():
+    """AJAX endpoint — runs the Crateometro search and returns results as JSON.
+    Accepts the same form fields as the /scopri POST handler."""
+    df = get_data()
+
+    _DIMS = ["Energy", "Emotional Weight", "Density", "Temperature", "Vastness"]
+
+    user_values = {}
+    for field in _DIMS:
+        try:
+            v = int(request.form.get(field, 3))
+            user_values[field] = max(1, min(5, v))
+        except (ValueError, TypeError):
+            user_values[field] = 3
+
+    matches = euclidean_match(user_values, df) if not df.empty else []
+
+    seed_album_id = (request.form.get("seed_album_id", "") or "").strip() or None
+    if seed_album_id:
+        matches = [m for m in matches if m.get("slug") != seed_album_id]
+
+    results = []
+    if not df.empty:
+        for meta in matches:
+            row_match = df[df["slug"] == meta["slug"]]
+            if not row_match.empty:
+                album = _row_to_dict(row_match.iloc[0])
+                results.append({
+                    "slug":             album["slug"],
+                    "name":             album["name"],
+                    "artist":           album["artist"],
+                    "release_year":     album["release_year"],
+                    "cover_url":        album["cover_url"],
+                    "score":            album["score"],
+                    "unique_genre":     album["unique_genre"],
+                    "energy":           album["energy"],
+                    "emotional_weight": album["emotional_weight"],
+                    "density":          album["density"],
+                    "temperature":      album["temperature"],
+                    "vastness":         album["vastness"],
+                    "compat_pct":       meta["compatibility_pct"],
+                })
+
+    return jsonify({"results": results})
+
+
+@app.route("/scopri/random-album")
+def scopri_random_album():
+    """Return a random eligible album (all 5 sonic fields present) as JSON."""
+    df = get_data()
+    if df.empty:
+        return jsonify({}), 404
+    _sonic_fields = ["Energy", "Emotional Weight", "Density", "Temperature", "Vastness"]
+    _mask = df[_sonic_fields].notna().all(axis=1)
+    _eligible_df = df[_mask]
+    if _eligible_df.empty:
+        return jsonify({}), 404
+    _row = _eligible_df.sample(1).iloc[0]
+    return jsonify({
+        "id": _safe_str(_row.get("slug")),
+        "title": _safe_str(_row.get("Name")),
+        "artist": _safe_str(_row.get("Artist")),
+        "year": int(_row["Release Year"]) if pd.notna(_row.get("Release Year")) else None,
+        "cover_url": _safe_str(_row.get("cover_url")),
+        "energy": int(_row["Energy"]),
+        "emotional_weight": int(_row["Emotional Weight"]),
+        "density": int(_row["Density"]),
+        "temperature": int(_row["Temperature"]),
+        "vastness": int(_row["Vastness"]),
+    })
 
 
 @app.route("/sitemap.xml")
